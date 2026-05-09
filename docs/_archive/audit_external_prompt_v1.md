@@ -90,7 +90,7 @@ Sévérités :
 - `README.md` — vue d'ensemble + commandes
 - `docs/kickoff_phaseA_20260509.md` — kickoff Phase A complet (Opus 4.7)
 - `docs/polylens_audit_phaseA_20260509.md` — audit interne 4 voix consolidé
-- `docs/decisions/0001-dspy-out-phase-a.md` — ADR DSPy MIPROv2 OUT avec 3 conditions de réveil
+- `docs/adr/0001-dspy-out-phase-a.md` — ADR DSPy MIPROv2 OUT avec 3 conditions de réveil
 - `docs/ab_report_phase_a.md` — A/B Linear vs Graph 5/5 cas baseline
 - `docs/phase_b_kickoff.md` — préparation Phase B avec backlog 12 items POLYLENS
 

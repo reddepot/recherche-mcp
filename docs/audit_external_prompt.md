@@ -23,7 +23,7 @@ Fichiers prioritaires :
 - `src/recherche_mcp/` (port, models, decompose, dispatch, quality, server, safety, usage, prompts/)
 - `src/recherche_mcp/data/` (axes_by_domain.yaml, quality_weights.yaml, dispatch_matrix.yaml)
 - `tests/` (106 tests pytest verts)
-- `docs/decisions/0001-dspy-out-phase-a.md` + `0002-quality-weights.md`
+- `docs/adr/0001-dspy-out-phase-a.md` + `0002-quality-weights.md`
 - `docs/_archive/polylens_audit_phaseA_20260509.md` (audit interne 4 voix archivé)
 - `docs/_archive/audit_external_prompt_v1.md` (prompt V1 archivé — déjà passé par 4 modèles)
 

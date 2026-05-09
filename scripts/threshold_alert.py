@@ -158,8 +158,8 @@ Lance dans le terminal :
 
 - Repo : https://github.com/reddepot/recherche-mcp
 - Phase B kickoff : docs/phase_b_kickoff.md
-- ADR DSPY_GATE : docs/decisions/0001-dspy-out-phase-a.md
-- ADR quality weights : docs/decisions/0002-quality-weights.md
+- ADR DSPY_GATE : docs/adr/0001-dspy-out-phase-a.md
+- ADR quality weights : docs/adr/0002-quality-weights.md
 
 —
 Notification automatique (recherche-mcp/scripts/threshold_alert.py)

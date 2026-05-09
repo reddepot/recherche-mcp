@@ -97,7 +97,7 @@ Override path : `RECHERCHE_MCP_RUNS_DIR=/custom/path` env var.
 
 ## Doc
 
-- `docs/decisions/` — ADRs actifs du projet
+- `docs/adr/` — ADRs actifs du projet
   - `0001-dspy-out-phase-a.md` — DSPY_GATE (3 conditions de réveil DSPy MIPROv2)
   - `0002-quality-weights.md` — pondération des 6 critères qualité par domaine
 - `docs/ab_report_phase_a.md` — A/B Linear vs Graph 5/5 cas baseline

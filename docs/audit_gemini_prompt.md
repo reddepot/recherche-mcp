@@ -23,7 +23,7 @@ Tu peux naviguer le repo via Google Search ou via les outils Drive/Web. Lis au m
 - `src/recherche_mcp/` — modules source (port, models, decompose, dispatch, quality, server, safety, usage, prompts/)
 - `src/recherche_mcp/data/axes_by_domain.yaml` + `quality_weights.yaml` + `dispatch_matrix.yaml`
 - `tests/` — 106 tests pytest (verts)
-- `docs/decisions/0001-dspy-out-phase-a.md` + `0002-quality-weights.md`
+- `docs/adr/0001-dspy-out-phase-a.md` + `0002-quality-weights.md`
 - `docs/polylens_audit_phaseA_20260509.md` — audit interne 4 voix
 - `docs/phase_b_kickoff.md` — préparation Phase B
 
