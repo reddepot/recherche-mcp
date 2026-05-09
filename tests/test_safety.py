@@ -72,7 +72,7 @@ class TestRedactEmail:
         [
             "Contact: jean.dupont@example.com",
             "Mail to user+test@sub.domain.fr",
-            "redtech@protonmail.com",
+            "user@example.com",
         ],
     )
     def test_email_detected(self, text: str):
