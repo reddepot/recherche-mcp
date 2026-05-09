@@ -1,5 +1,12 @@
 # recherche-mcp — MCP server pour décomposition orthogonale + dispatch matrice
 
+<!-- sunset-it:freeze-banner -->
+> **🥶 Frozen as of 2026-05-09**
+> 
+> Last known-good tag: `freeze-2026-05-09` · maintenance branch: `maintenance` · profile: `solo-frozen`. See [`docs/SUNSET_NOTICE.md`](docs/SUNSET_NOTICE.md) and [`docs/RUNBOOK.md`](docs/RUNBOOK.md) for the reactivation policy.
+<!-- /sunset-it:freeze-banner -->
+
+
 Serveur MCP exposant 3 outils pour formaliser la **décomposition orthogonale** de questions de recherche complexes en 4-6 sous-prompts experts spécialisés par domaine, avec annonce de **matrice de dispatch** vers modèles candidats (Perplexity DR, OpenAI o3-DR, Anthropic web_search, Gemini DR, Kimi Swarm, Qwen Max DR, Codex/Gemini/Kimi CLI).
 
 Conçu comme **back-end métier** du skill Claude Code `/recherche` (front-end conversationnel passif).
