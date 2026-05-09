@@ -94,8 +94,31 @@ def extract_subject(text: str) -> str:
     return f"{cut}..."
 
 
+class DispatchResolver:
+    """Protocol pour résoudre les candidats d'une liste de sous-questions.
+
+    Audit externe 2026-05-09 (4/4 voix P1) : Decomposer ne devrait pas connaître
+    DispatchMatrix singleton directement. Cette interface permet l'injection
+    explicite (DI) en tests, ainsi que des résolveurs alternatifs Phase B.
+    """
+
+    def resolve(self, subqs: list[SubQuestion]) -> list:
+        """Retourne List[DispatchEntry] avec candidats par sous-question."""
+        raise NotImplementedError
+
+
+def _default_resolver() -> DispatchResolver:
+    """Résolveur par défaut : DispatchMatrix singleton (compat backward)."""
+    from .dispatch import DispatchMatrix
+    return DispatchMatrix.current()
+
+
 class Decomposer(ABC):
-    """Interface : produire un ResearchPlan complet à partir d'une Question."""
+    """Interface : produire un ResearchPlan complet à partir d'une Question.
+
+    Audit externe 2026-05-09 : `dispatch_resolver` injecté en option (DI
+    explicite). Default = DispatchMatrix.current() pour backward compat.
+    """
 
     @abstractmethod
     def decompose(self, q: Question) -> ResearchPlan: ...
@@ -104,17 +127,22 @@ class Decomposer(ABC):
 class LinearDecomposer(Decomposer):
     """Décomposition séquentielle: sous-Q indépendantes, ordre non contraignant."""
 
-    def __init__(self, n_subq: int = 5):
+    def __init__(
+        self,
+        n_subq: int = 5,
+        dispatch_resolver: DispatchResolver | None = None,
+    ):
         if not 4 <= n_subq <= 7:
             raise ValueError(f"n_subq must be in [4, 7], got {n_subq}")
         self.n_subq = n_subq
+        self._resolver = dispatch_resolver or _default_resolver()
 
     def decompose(self, q: Question) -> ResearchPlan:
         axes = self._select_axes(q.domain, self.n_subq)
         subqs = [self._build_subq(q, axis) for axis in axes]
 
-        from .dispatch import DispatchMatrix
-        dispatch = DispatchMatrix.current().resolve(subqs)
+        # Audit externe 2026-05-09 : DI explicite (plus de singleton direct)
+        dispatch = self._resolver.resolve(subqs)
 
         quality = score_decomposition(
             subqs, edges=[], domain=q.domain or Domain.MIXTE
@@ -165,10 +193,15 @@ class GraphDecomposer(Decomposer):
     Edges : root informs branches, branches depend_on synthesis.
     """
 
-    def __init__(self, n_subq: int = 5):
+    def __init__(
+        self,
+        n_subq: int = 5,
+        dispatch_resolver: DispatchResolver | None = None,
+    ):
         if not 4 <= n_subq <= 7:
             raise ValueError(f"n_subq must be in [4, 7], got {n_subq}")
         self.n_subq = n_subq
+        self._resolver = dispatch_resolver or _default_resolver()
 
     def decompose(self, q: Question) -> ResearchPlan:
         domain = q.domain or Domain.MIXTE
@@ -226,8 +259,7 @@ class GraphDecomposer(Decomposer):
             ]
         )
 
-        from .dispatch import DispatchMatrix
-        dispatch = DispatchMatrix.current().resolve(subqs)
+        dispatch = self._resolver.resolve(subqs)
 
         quality = score_decomposition(subqs, edges=edges, domain=domain)
 
@@ -241,17 +273,21 @@ class GraphDecomposer(Decomposer):
         )
 
 
-def make_decomposer(strategy: Strategy, n_subq: int = 5) -> Decomposer:
+def make_decomposer(
+    strategy: Strategy,
+    n_subq: int = 5,
+    dispatch_resolver: DispatchResolver | None = None,
+) -> Decomposer:
     """Factory — point unique pour A/B test Linear vs Graph.
 
-    Audit externe 2026-05-09 : `case _: raise` ajouté pour détecter
-    immédiatement toute Strategy ajoutée (Phase B : HYBRID, etc.) qui
-    n'aurait pas son décomposeur correspondant.
+    Audit externe 2026-05-09 :
+    - `case _: raise` ajouté pour détecter Strategy ajoutée sans décomposeur
+    - `dispatch_resolver` paramètre optionnel pour DI explicite
     """
     match strategy:
         case Strategy.LINEAR:
-            return LinearDecomposer(n_subq)
+            return LinearDecomposer(n_subq, dispatch_resolver=dispatch_resolver)
         case Strategy.GRAPH:
-            return GraphDecomposer(n_subq)
+            return GraphDecomposer(n_subq, dispatch_resolver=dispatch_resolver)
         case _:
             raise ValueError(f"Unsupported strategy: {strategy!r}")

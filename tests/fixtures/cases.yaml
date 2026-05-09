@@ -28,10 +28,11 @@ cases:
       de reclassement et risque de licenciement nul.
     expected_subq:
       - "[definition] inaptitude psychique vs RPS"
-      - "[etat_art] articles L.4624-* + L.1226-*"
-      - "[jurisprudence] arrêts Cass. soc. 2024-2026"
-      - "[reclassement] obligations employeur + traçabilité"
-      - "[risques] licenciement nul : critères jurisprudentiels"
+      - "[etat_art] jurisprudence Cass. soc. 2024-2026"
+      - "[cadre_normatif] articles L.4624-* + L.1226-*"
+      - "[praticien_cible] obligations SPSTI + traçabilité"
+      - "[risques_limites] licenciement nul critères"
+      - "[operationnalisation] procédure pratique pas-à-pas"
     expected_dispatch:
       - perplexity-deep-research
       - chatgpt-deep-research
@@ -44,11 +45,12 @@ cases:
       vs SSE, implémentations Python disponibles, trade-offs vs stdio en
       LAN-only.
     expected_subq:
-      - "[spec] MCP streamable-http spec 2026"
+      - "[definition] MCP streamable-http spec 2026"
       - "[etat_art] implémentations Python (FastMCP, mcp SDK)"
       - "[trade_offs] vs stdio, vs SSE"
-      - "[ops] déploiement local, certificats, auth"
+      - "[mise_en_oeuvre] code minimal runnable"
       - "[migration] depuis SSE, breaking changes"
+      - "[ecosysteme] FastMCP/mcp SDK/swimming"
     expected_dispatch:
       - codex-cli
       - gemini-cli
@@ -78,11 +80,12 @@ cases:
       logiciels conformes RGPD/HDS, retex équipes SST, comparaison Espagne et
       Allemagne, risque médico-légal du diagnostic à distance.
     expected_subq:
-      - "[cadre_legal_fr] CT + jurisprudence + recommandations"
-      - "[outils_techniques] logiciels HDS + intégration DPI"
-      - "[retex_terrain] équipes SST 2024-2026"
+      - "[definition] téléconsultation MdT terminologie"
+      - "[etat_art] retex équipes SST 2024-2026"
+      - "[cadre_normatif] CT + jurisprudence + recommandations HAS"
+      - "[risques_limites] risque médico-légal diagnostic à distance"
+      - "[operationnalisation] logiciels HDS + intégration DPI"
       - "[comparaison_int] Espagne, Allemagne"
-      - "[risque_medlegal] diagnostic à distance : limites"
     expected_dispatch:
       - anthropic-claude-web-search
       - perplexity-deep-research
