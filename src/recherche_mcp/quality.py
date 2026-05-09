@@ -7,6 +7,7 @@ quality_weights.yaml (Kimi P1 fix).
 
 from __future__ import annotations
 
+import logging
 import threading
 from pathlib import Path
 
@@ -15,35 +16,79 @@ import yaml
 
 from .models import Domain, GraphEdge, QualityScores, SubQuestion
 
+logger = logging.getLogger("recherche_mcp.quality")
+
 _MODEL = None
 _MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 _MODEL_LOCK = threading.Lock()
+_EMBEDDING_AVAILABLE: bool | None = None  # None=untested, True=ok, False=offline
+
+
+def _try_load_sentence_transformer():
+    """Tente de charger sentence-transformers. Return None si offline (audit Kimi P1).
+
+    Cas couverts :
+    - ImportError : package non installé
+    - OSError : pas de connexion HF Hub + pas de cache local
+    - FileNotFoundError : modèle absent du cache offline
+    """
+    global _EMBEDDING_AVAILABLE
+    try:
+        from sentence_transformers import SentenceTransformer
+
+        model = SentenceTransformer(_MODEL_NAME)
+        _EMBEDDING_AVAILABLE = True
+        return model
+    except (ImportError, OSError, FileNotFoundError) as exc:
+        logger.warning(
+            "sentence-transformers indisponible (%s) — fallback Jaccard "
+            "tokens activé. Phase A v0.3 : graceful degradation offline.",
+            type(exc).__name__,
+        )
+        _EMBEDDING_AVAILABLE = False
+        return None
 
 
 def _embed():
-    """Lazy-load thread-safe du modèle d'embeddings (POLYLENS Gemini P1).
+    """Lazy-load thread-safe du modèle d'embeddings.
 
-    Premier appel : ~200MB download. Verrou pour éviter double instanciation
-    en cas d'appels concurrents (FastMCP gère du parallèle).
+    Premier appel : ~200MB download. Verrou pour éviter double instanciation.
+    Audit Kimi P1 : si offline/air-gapped, retourne None → fallback Jaccard.
     """
     global _MODEL
     if _MODEL is None:
         with _MODEL_LOCK:
             if _MODEL is None:
-                from sentence_transformers import SentenceTransformer
-                _MODEL = SentenceTransformer(_MODEL_NAME)
+                _MODEL = _try_load_sentence_transformer()
     return _MODEL
 
 
 def set_embed_model(model) -> None:
-    """Inject mock model for tests (POLYLENS Codex P1).
-
-    Usage : `set_embed_model(MockEmbedder())` avant les tests pour éviter
-    les téléchargements sentence-transformers et accélérer les tests integ.
-    """
-    global _MODEL
+    """Inject mock model for tests."""
+    global _MODEL, _EMBEDDING_AVAILABLE
     with _MODEL_LOCK:
         _MODEL = model
+        _EMBEDDING_AVAILABLE = model is not None
+
+
+def _jaccard_similarity_matrix(texts: list[str]) -> np.ndarray:
+    """Fallback Jaccard sur tokens si sentence-transformers indisponible.
+
+    Audit Kimi P1 : graceful degradation offline. Métrique grossière mais
+    fonctionnelle. Permet à recherche-mcp de tourner sans network.
+    """
+    token_sets = [set(t.lower().split()) for t in texts]
+    n = len(texts)
+    sim = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                sim[i][j] = 1.0
+            else:
+                union = token_sets[i] | token_sets[j]
+                inter = token_sets[i] & token_sets[j]
+                sim[i][j] = len(inter) / max(len(union), 1)
+    return sim
 
 
 _WEIGHTS_PATH = Path(__file__).parent / "data" / "quality_weights.yaml"
@@ -82,8 +127,13 @@ def score_decomposition(
     - Traçabilité : 0.9 si edges présents (graphe), 0.7 sinon (linéaire)
     """
     texts = [s.text for s in subqs]
-    embs = _embed().encode(texts, normalize_embeddings=True)
-    sim = embs @ embs.T
+    model = _embed()
+    if model is not None:
+        embs = model.encode(texts, normalize_embeddings=True)
+        sim = embs @ embs.T
+    else:
+        # Audit Kimi P1 fix : fallback Jaccard si offline
+        sim = _jaccard_similarity_matrix(texts)
     np.fill_diagonal(sim, 0.0)
     max_offdiag = float(sim.max())
     mean_offdiag = float(sim.mean())

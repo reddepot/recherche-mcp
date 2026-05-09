@@ -29,7 +29,25 @@ logger = logging.getLogger("recherche_mcp.usage")
 
 # Path par défaut : ~/Developer/projects/recherche-mcp/runs/
 # Override via env var RECHERCHE_MCP_RUNS_DIR (utile pour tests)
-DEFAULT_RUNS_DIR = Path.home() / "Developer/projects/recherche-mcp/runs"
+def _default_runs_dir() -> Path:
+    """Path XDG-conforme cross-platform (audit Kimi P3 + ChatGPT P3).
+
+    Linux : ~/.local/share/recherche-mcp/runs/
+    macOS : ~/Library/Application Support/recherche-mcp/runs/
+    Windows : %LOCALAPPDATA%/recherche-mcp/runs/
+
+    Fallback ~/Developer/projects/recherche-mcp/runs/ si platformdirs
+    indisponible (compat Phase A v0.2).
+    """
+    try:
+        import platformdirs
+        return Path(platformdirs.user_data_dir("recherche-mcp", "reddepot")) / "runs"
+    except ImportError:
+        # Fallback legacy macOS-centrique
+        return Path.home() / "Developer/projects/recherche-mcp/runs"
+
+
+DEFAULT_RUNS_DIR = _default_runs_dir()
 
 _LOCK = threading.Lock()
 _DISABLED = False  # contrôlé par CLI --no-log
