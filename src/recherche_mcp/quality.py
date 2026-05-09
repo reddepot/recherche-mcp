@@ -1,16 +1,19 @@
 """6 critères qualité — métriques objectivables, sans MIPROv2.
 
 DSPY_GATE: la pondération scalaire de ces 6 critères = trigger Phase B.
-Phase A: moyenne simple (cf models.QualityScores.overall).
+Phase A v0.3 (audit externe) : pondération par domaine via ADR-0002 +
+quality_weights.yaml (Kimi P1 fix).
 """
 
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 
 import numpy as np
+import yaml
 
-from .models import GraphEdge, QualityScores, SubQuestion
+from .models import Domain, GraphEdge, QualityScores, SubQuestion
 
 _MODEL = None
 _MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -43,8 +46,30 @@ def set_embed_model(model) -> None:
         _MODEL = model
 
 
+_WEIGHTS_PATH = Path(__file__).parent / "data" / "quality_weights.yaml"
+_WEIGHTS_CACHE: dict[str, dict[str, float]] | None = None
+
+
+def get_weights_for_domain(domain: Domain) -> dict[str, float]:
+    """Charge les poids des 6 critères pour un domaine (ADR-0002)."""
+    global _WEIGHTS_CACHE
+    if _WEIGHTS_CACHE is None:
+        _WEIGHTS_CACHE = yaml.safe_load(
+            _WEIGHTS_PATH.read_text(encoding="utf-8")
+        )
+    return _WEIGHTS_CACHE.get(domain.value, _WEIGHTS_CACHE["mixte"])
+
+
+def reset_weights_cache() -> None:
+    """Pour tests : reset le cache des poids."""
+    global _WEIGHTS_CACHE
+    _WEIGHTS_CACHE = None
+
+
 def score_decomposition(
-    subqs: list[SubQuestion], edges: list[GraphEdge]
+    subqs: list[SubQuestion],
+    edges: list[GraphEdge],
+    domain: Domain = Domain.MIXTE,
 ) -> QualityScores:
     """Calcule les 6 scores qualité d'une décomposition.
 
@@ -83,4 +108,5 @@ def score_decomposition(
         clarte=clarte,
         balance=balance,
         tracabilite=tracabilite,
+        domain=domain,
     )

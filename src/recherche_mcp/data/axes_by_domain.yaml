@@ -1,0 +1,55 @@
+# Axes canoniques par domaine (audit externe 2026-05-09 : 4/4 voix P0)
+#
+# Phase A v0.1 utilisait 7 axes uniformes biaisés SST. Pour `domain="technique"`,
+# l'axe `praticien_cible` produisait des sous-questions absurdes.
+#
+# Cette matrice associe chaque domaine à des axes pertinents. Format :
+#   - axe_id : verbe différenciant (utilisé par decompose.py pour générer le
+#     préfixe textuel des sous-questions)
+#
+# Phase B : enrichissement LLM-driven possible.
+
+clinique:
+  - definition: "Définir précisément les concepts et terminologie de"
+  - etat_art: "Synthétiser l'état de l'art empirique 2024-2026 sur"
+  - cadre_normatif: "Identifier le cadre normatif (CSP, CT, HAS, INRS) applicable à"
+  - praticien_cible: "Préciser la portée pratique pour le médecin du travail concernant"
+  - risques_limites: "Cartographier les risques cliniques et limites de"
+  - operationnalisation: "Décrire les outils et protocoles cliniques validés pour"
+  - comparaison_int: "Comparer avec les pratiques internationales (HAS vs NICE/USPSTF) sur"
+
+juridique_fr:
+  - definition: "Définir les notions juridiques et terminologiques de"
+  - etat_art: "Recenser la jurisprudence Cass. soc. 2024-2026 sur"
+  - cadre_normatif: "Citer les articles précis (L./R./D.) du Code du travail applicable à"
+  - praticien_cible: "Préciser les obligations du médecin du travail / SPSTI concernant"
+  - risques_limites: "Identifier les controverses doctrinales et risques contentieux sur"
+  - operationnalisation: "Décrire la procédure pratique et la traçabilité requise pour"
+  - comparaison_int: "Comparer le droit FR avec EU AI Act, RGPD, jurisprudence CJUE sur"
+
+technique:
+  - definition: "Définir précisément les concepts et terminologie technique de"
+  - etat_art: "État de l'art des spécifications, RFC, releases 2025-2026 sur"
+  - trade_offs: "Cartographier les trade-offs (perf, sécurité, maintenabilité) de"
+  - mise_en_oeuvre: "Décrire l'implémentation idiomatique avec exemples de code pour"
+  - ecosysteme: "Comparer les frameworks/SDKs disponibles dans l'écosystème de"
+  - migration: "Décrire les breaking changes et stratégie de migration pour"
+  - benchmark: "Comparer les benchmarks publics (vitesse, mémoire, scalabilité) de"
+
+multilingue:
+  - terminologie: "Lister la terminologie équivalente FR/EN/DE/ES (tableau pivot) pour"
+  - etat_art_int: "Recenser les sources internationales primaires (≥2 langues) sur"
+  - perimetre: "Préciser le périmètre (objet, audience, scope juridictionnel) de"
+  - opposabilite: "Comparer l'opposabilité juridique nationale (NF/DIN/BS/ANSI) pour"
+  - retex_terrain: "Documenter les retours d'expérience industriels (≥2 pays) sur"
+  - operationnalisation: "Décrire la mise en œuvre pratique en contexte FR pour"
+  - faux_amis: "Identifier les faux-amis terminologiques et divergences sémantiques sur"
+
+mixte:
+  - definition: "Définir les concepts et terminologie multi-domaines de"
+  - etat_art: "Synthétiser l'état de l'art transversal sur"
+  - cadre_normatif: "Identifier le cadre normatif applicable à"
+  - praticien_cible: "Préciser la portée pratique pour le praticien concerné par"
+  - risques_limites: "Cartographier les risques et limites de"
+  - operationnalisation: "Décrire l'opérationnalisation concrète de"
+  - comparaison_int: "Comparer avec pratiques internationales équivalentes pour"

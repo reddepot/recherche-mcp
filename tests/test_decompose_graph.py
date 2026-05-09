@@ -19,7 +19,10 @@ def test_graph_produces_default_5_subq(question_clinique):
 def test_graph_has_root_and_synthesis(question_clinique):
     plan = GraphDecomposer().decompose(question_clinique)
     texts = [s.text for s in plan.sub_questions]
-    assert any("[définition]" in t for t in texts)
+    # Root = 1er axe canonique du domaine (depuis axes_by_domain.yaml)
+    # Pour clinique : "definition" (sans accent, label YAML)
+    assert any("[definition]" in t for t in texts)
+    # Synthesis = nœud convergence (hardcoded GraphDecomposer)
     assert any("[synthèse]" in t for t in texts)
 
 

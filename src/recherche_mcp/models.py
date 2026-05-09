@@ -71,16 +71,19 @@ class QualityScores(BaseModel):
     clarte: float = Field(ge=0.0, le=1.0)
     balance: float = Field(ge=0.0, le=1.0)
     tracabilite: float = Field(ge=0.0, le=1.0)
+    domain: Domain = Domain.MIXTE  # nouveau Phase A v0.3 pour overall pondéré
 
     @property
     def overall(self) -> float:
-        """Phase A: moyenne simple.
+        """Pondération par domaine (ADR-0002 — audit externe Kimi P1).
 
-        DSPY_GATE: pondération = trigger DSPy Phase B
-        (cf decompose.py header).
+        Phase A v0.2 utilisait moyenne simple. Phase A v0.3 charge les poids
+        depuis quality_weights.yaml par domaine.
         """
-        v = self.model_dump()
-        return sum(v.values()) / len(v)
+        from .quality import get_weights_for_domain  # lazy import (évite circular)
+        weights = get_weights_for_domain(self.domain)
+        criteria = ("couverture", "orthogonalite", "autonomie", "clarte", "balance", "tracabilite")
+        return sum(weights[k] * getattr(self, k) for k in criteria)
 
 
 class ResearchPlan(BaseModel):

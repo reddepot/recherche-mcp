@@ -1,0 +1,50 @@
+# Pondération des 6 critères qualité par domaine (ADR-0002).
+#
+# Audit externe 2026-05-09 (Kimi P1) : `quality.overall` était une moyenne
+# simple non pondérée. Pour le domaine juridique, `cadre_normatif` (couverture
+# législative) est plus critique que `comparaison_int`. Pour technique,
+# `operationnalisation` (code runnable) l'emporte sur `praticien_cible`.
+#
+# Format : domain → {critere: poids}. Somme des poids = 1.0 par domaine.
+# Phase B : poids ajustables via DEVCODE-Vote ou DSPy si DSPY_GATE atteint.
+
+clinique:
+  couverture: 0.20
+  orthogonalite: 0.15
+  autonomie: 0.10
+  clarte: 0.10
+  balance: 0.10
+  tracabilite: 0.35  # crucial médico-légal (Loi Kouchner, Art. L4624-8 CT)
+
+juridique_fr:
+  couverture: 0.25  # exhaustivité des articles applicables
+  orthogonalite: 0.10
+  autonomie: 0.10
+  clarte: 0.10
+  balance: 0.10
+  tracabilite: 0.35  # n° d'arrêt + doctrine = audit-able
+
+technique:
+  couverture: 0.15
+  orthogonalite: 0.20
+  autonomie: 0.15
+  clarte: 0.20  # importance code runnable, lisibilité
+  balance: 0.15
+  tracabilite: 0.15
+
+multilingue:
+  couverture: 0.20
+  orthogonalite: 0.20
+  autonomie: 0.15
+  clarte: 0.15
+  balance: 0.15
+  tracabilite: 0.15
+
+mixte:
+  # Pondération neutre = moyenne simple (compat backward Phase A v0.2)
+  couverture: 0.166667
+  orthogonalite: 0.166667
+  autonomie: 0.166667
+  clarte: 0.166667
+  balance: 0.166667
+  tracabilite: 0.166665  # ajustement floating point pour somme = 1.0
