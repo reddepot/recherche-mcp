@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTD/PropertyList-1.0.dtd">
+<!--
+  launchd plist macOS — vérification quotidienne du seuil de recherches.
+
+  Installation :
+    cp scripts/com.reddepot.recherche-mcp.threshold-alert.plist \
+       ~/Library/LaunchAgents/
+
+    launchctl load ~/Library/LaunchAgents/com.reddepot.recherche-mcp.threshold-alert.plist
+    launchctl list | grep recherche-mcp   # vérification
+
+  Désinstallation :
+    launchctl unload ~/Library/LaunchAgents/com.reddepot.recherche-mcp.threshold-alert.plist
+    rm ~/Library/LaunchAgents/com.reddepot.recherche-mcp.threshold-alert.plist
+
+  Test manuel immédiat :
+    launchctl start com.reddepot.recherche-mcp.threshold-alert
+    cat /tmp/recherche-mcp-threshold.log
+
+  Pré-requis :
+    - venv créé à ~/Developer/projects/recherche-mcp/.venv (`uv venv` + install)
+    - Credentials SMTP dans ~/.config/recherche-mcp/smtp.env (chmod 600) :
+        ALERT_SMTP_PASS=<mot_de_passe_zimbra>
+        # Le reste a des défauts sensibles (ssl0.ovh.net:587, redbot@reddie.ovh,
+        # redtech@protonmail.com)
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.reddepot.recherche-mcp.threshold-alert</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/radu/Developer/projects/recherche-mcp/.venv/bin/python3</string>
+        <string>/Users/radu/Developer/projects/recherche-mcp/scripts/threshold_alert.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/radu/Developer/projects/recherche-mcp</string>
+
+    <!-- Exécution quotidienne à 9h00 du matin -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <!-- Si Mac éteint à 9h, exécuter dès le réveil (pas attendre 9h le lendemain) -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <!-- Logs -->
+    <key>StandardOutPath</key>
+    <string>/tmp/recherche-mcp-threshold.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/recherche-mcp-threshold.err</string>
+
+    <!-- Pas de relance si le script termine en erreur (évite spam) -->
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
