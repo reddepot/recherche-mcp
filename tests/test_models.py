@@ -156,3 +156,84 @@ def test_research_plan_min_4_subq():
             dispatch=[],
             quality=quality,
         )
+
+
+@pytest.mark.unit
+def test_research_plan_dispatch_rejects_duplicate_subq_ids():
+    """POLYLENS Codex P1 : dispatch avec sub_question_id dupliqué = ValidationError."""
+    q = Question(text="x" * 50)
+    sqs = [
+        SubQuestion(
+            parent_id=q.id,
+            text=f"[axe-{i}] ...",
+            rationale="rationale long enough to pass",
+            domain_hint=Domain.MIXTE,
+            confidence=0.7,
+        )
+        for i in range(4)
+    ]
+    cand = ModelCandidate(name="x", rationale="y", invocation="auto", priority=1)
+    quality = QualityScores(
+        couverture=0.7,
+        orthogonalite=0.7,
+        autonomie=0.7,
+        clarte=0.7,
+        balance=0.7,
+        tracabilite=0.7,
+    )
+    # Duplicate du premier sub_question_id
+    dispatch_dup = [
+        DispatchEntry(sub_question_id=sqs[0].id, candidates=[cand]),
+        DispatchEntry(sub_question_id=sqs[0].id, candidates=[cand]),  # DUP !
+        DispatchEntry(sub_question_id=sqs[2].id, candidates=[cand]),
+        DispatchEntry(sub_question_id=sqs[3].id, candidates=[cand]),
+    ]
+    with pytest.raises(ValidationError, match="dupliqu"):
+        ResearchPlan(
+            question=q,
+            strategy=Strategy.LINEAR,
+            sub_questions=sqs,
+            dispatch=dispatch_dup,
+            quality=quality,
+        )
+
+
+@pytest.mark.unit
+def test_research_plan_edges_must_reference_existing_subqs():
+    """POLYLENS Gemini P0 : validator edges référencent des sub_questions existantes."""
+    from uuid import uuid4
+    q = Question(text="x" * 50)
+    sqs = [
+        SubQuestion(
+            parent_id=q.id,
+            text=f"[axe-{i}] ...",
+            rationale="rationale long enough",
+            domain_hint=Domain.MIXTE,
+            confidence=0.7,
+        )
+        for i in range(4)
+    ]
+    cand = ModelCandidate(name="x", rationale="y", invocation="auto", priority=1)
+    quality = QualityScores(
+        couverture=0.7,
+        orthogonalite=0.7,
+        autonomie=0.7,
+        clarte=0.7,
+        balance=0.7,
+        tracabilite=0.7,
+    )
+    dispatch = [DispatchEntry(sub_question_id=s.id, candidates=[cand]) for s in sqs]
+    # Edge avec target_id orphelin
+    from recherche_mcp.models import GraphEdge
+    bad_edge = GraphEdge(
+        source_id=sqs[0].id, target_id=uuid4(), relation="informs"
+    )
+    with pytest.raises(ValidationError, match="absent de sub_questions"):
+        ResearchPlan(
+            question=q,
+            strategy=Strategy.GRAPH,
+            sub_questions=sqs,
+            edges=[bad_edge],
+            dispatch=dispatch,
+            quality=quality,
+        )

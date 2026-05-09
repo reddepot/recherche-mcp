@@ -6,21 +6,41 @@ Phase A: moyenne simple (cf models.QualityScores.overall).
 
 from __future__ import annotations
 
+import threading
+
 import numpy as np
 
 from .models import GraphEdge, QualityScores, SubQuestion
 
 _MODEL = None
 _MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+_MODEL_LOCK = threading.Lock()
 
 
 def _embed():
-    """Lazy-load le modèle d'embeddings (200MB download premier appel)."""
+    """Lazy-load thread-safe du modèle d'embeddings (POLYLENS Gemini P1).
+
+    Premier appel : ~200MB download. Verrou pour éviter double instanciation
+    en cas d'appels concurrents (FastMCP gère du parallèle).
+    """
     global _MODEL
     if _MODEL is None:
-        from sentence_transformers import SentenceTransformer
-        _MODEL = SentenceTransformer(_MODEL_NAME)
+        with _MODEL_LOCK:
+            if _MODEL is None:
+                from sentence_transformers import SentenceTransformer
+                _MODEL = SentenceTransformer(_MODEL_NAME)
     return _MODEL
+
+
+def set_embed_model(model) -> None:
+    """Inject mock model for tests (POLYLENS Codex P1).
+
+    Usage : `set_embed_model(MockEmbedder())` avant les tests pour éviter
+    les téléchargements sentence-transformers et accélérer les tests integ.
+    """
+    global _MODEL
+    with _MODEL_LOCK:
+        _MODEL = model
 
 
 def score_decomposition(

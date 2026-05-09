@@ -7,7 +7,7 @@ from enum import Enum
 from typing import Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
 
 class Domain(str, Enum):
@@ -93,9 +93,38 @@ class ResearchPlan(BaseModel):
 
     @field_validator("dispatch")
     @classmethod
-    def _dispatch_covers_subq(cls, v, info):
+    def _dispatch_covers_subq(
+        cls, v: list[DispatchEntry], info: ValidationInfo
+    ) -> list[DispatchEntry]:
+        """Dispatch couvre exactement les sub_questions, sans doublons."""
         sq_ids = {s.id for s in info.data.get("sub_questions", [])}
-        d_ids = {d.sub_question_id for d in v}
-        if sq_ids != d_ids:
-            raise ValueError("dispatch doit couvrir exactement les sub_questions")
+        d_ids = [d.sub_question_id for d in v]
+        # Anti-doublons (POLYLENS Codex P1)
+        if len(d_ids) != len(set(d_ids)):
+            raise ValueError(
+                "dispatch contient des sub_question_id dupliqués"
+            )
+        if sq_ids != set(d_ids):
+            raise ValueError(
+                "dispatch doit couvrir exactement les sub_questions"
+            )
         return v
+
+    @model_validator(mode="after")
+    def _edges_reference_existing_subqs(self) -> "ResearchPlan":
+        """Tous les edges référencent des sub_questions existantes (POLYLENS Gemini P0).
+
+        Empêche les graphes rompus en silence : un edge avec un source_id
+        ou target_id non présent dans sub_questions est invalide.
+        """
+        sq_ids = {s.id for s in self.sub_questions}
+        for edge in self.edges:
+            if edge.source_id not in sq_ids:
+                raise ValueError(
+                    f"edge.source_id={edge.source_id} absent de sub_questions"
+                )
+            if edge.target_id not in sq_ids:
+                raise ValueError(
+                    f"edge.target_id={edge.target_id} absent de sub_questions"
+                )
+        return self

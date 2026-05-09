@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import signal
+import threading
 import time
 from uuid import uuid4
 
@@ -67,22 +68,18 @@ def test_dispatch_priority_ordering():
 
 
 @pytest.mark.integ
-def test_dispatch_sighup_reload(tmp_dispatch_yaml):
-    """SIGHUP recharge le fichier modifié à chaud."""
+def test_dispatch_reload_after_yaml_modification(tmp_dispatch_yaml):
+    """reload() recharge le fichier modifié à chaud (test découplé du SIGHUP)."""
     DispatchMatrix.reset()
     matrix = DispatchMatrix.current(path=tmp_dispatch_yaml)
 
-    # État initial
-    assert (
-        matrix._data["clinique"][0]["name"] == "perplexity-deep-research"
-    )
+    assert matrix._data["clinique"][0]["name"] == "perplexity-deep-research"
 
-    # Modifier le fichier
     new_content = {
         "clinique": [
             {
                 "name": "modified-model",
-                "rationale": "After SIGHUP",
+                "rationale": "After reload",
                 "invocation": "auto",
                 "priority": 1,
             }
@@ -91,6 +88,74 @@ def test_dispatch_sighup_reload(tmp_dispatch_yaml):
     }
     tmp_dispatch_yaml.write_text(yaml.safe_dump(new_content), encoding="utf-8")
 
-    # Reload manuel (SIGHUP est testé indirectement via .reload())
     matrix.reload()
     assert matrix._data["clinique"][0]["name"] == "modified-model"
+
+
+@pytest.mark.integ
+def test_dispatch_real_sighup_triggers_reload(tmp_dispatch_yaml):
+    """SIGHUP réel déclenche le reload (POLYLENS CONV-3 fix).
+
+    Skip sur Windows (pas de SIGHUP) et thread non-main (signal handlers
+    ne fonctionnent que sur le thread principal).
+    """
+    if not hasattr(signal, "SIGHUP"):
+        pytest.skip("SIGHUP non disponible (Windows ?)")
+    if threading.current_thread() is not threading.main_thread():
+        pytest.skip("SIGHUP handlers uniquement sur thread principal")
+
+    DispatchMatrix.reset()
+    matrix = DispatchMatrix.current(path=tmp_dispatch_yaml)
+    assert matrix._data["clinique"][0]["name"] == "perplexity-deep-research"
+
+    new_content = {
+        "clinique": [
+            {
+                "name": "via-sighup",
+                "rationale": "After real SIGHUP",
+                "invocation": "auto",
+                "priority": 1,
+            }
+        ],
+        "mixte": matrix._data["mixte"],
+    }
+    tmp_dispatch_yaml.write_text(yaml.safe_dump(new_content), encoding="utf-8")
+
+    # Envoi SIGHUP réel au process
+    os.kill(os.getpid(), signal.SIGHUP)
+    time.sleep(0.2)  # laisser le handler s'exécuter
+
+    assert matrix._data["clinique"][0]["name"] == "via-sighup"
+
+
+@pytest.mark.unit
+def test_dispatch_yaml_empty_returns_empty_dict(tmp_path):
+    """yaml.safe_load(empty file) renvoie None : doit être tolérant (POLYLENS Codex+Gemini P1)."""
+    DispatchMatrix.reset()
+    p = tmp_path / "empty.yaml"
+    p.write_text("", encoding="utf-8")
+    matrix = DispatchMatrix(p)
+    assert matrix._data == {}
+
+
+@pytest.mark.unit
+def test_dispatch_yaml_invalid_format_raises(tmp_path):
+    """YAML scalaire ou liste = ValueError immédiate (pas AttributeError silencieux)."""
+    DispatchMatrix.reset()
+    p = tmp_path / "bad.yaml"
+    p.write_text("- just\n- a\n- list\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="dispatch matrix invalide"):
+        DispatchMatrix(p)
+
+
+@pytest.mark.unit
+def test_dispatch_get_candidates_public_api(tmp_dispatch_yaml):
+    """API publique get_candidates() (POLYLENS Kimi P2)."""
+    DispatchMatrix.reset()
+    matrix = DispatchMatrix.current(path=tmp_dispatch_yaml)
+    cands = matrix.get_candidates("clinique")
+    assert len(cands) >= 1
+    assert all("priority" in c for c in cands)
+    # Fallback mixte
+    fallback = matrix.get_candidates("inexistant")
+    assert len(fallback) >= 1

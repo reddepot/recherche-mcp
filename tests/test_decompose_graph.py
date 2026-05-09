@@ -69,3 +69,13 @@ def test_graph_branches_link_root_to_synthesis(question_clinique):
 def test_graph_rejects_out_of_range(bad):
     with pytest.raises(ValueError, match="n_subq must be in"):
         GraphDecomposer(n_subq=bad)
+
+
+@pytest.mark.integ
+def test_graph_edges_reference_existing_subqs(question_clinique):
+    """POLYLENS Gemini P0 : edges doivent référencer des sub_questions existantes."""
+    plan = GraphDecomposer().decompose(question_clinique)
+    sq_ids = {s.id for s in plan.sub_questions}
+    for edge in plan.edges:
+        assert edge.source_id in sq_ids, f"source_id orphelin: {edge.source_id}"
+        assert edge.target_id in sq_ids, f"target_id orphelin: {edge.target_id}"
