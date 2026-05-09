@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_validator
 
 
-class Domain(str, Enum):
+class Domain(StrEnum):
+    """StrEnum (Python 3.11+) — audit externe 2026-05-09 ChatGPT+DeepSeek P3."""
+
     CLINIQUE = "clinique"
     JURIDIQUE_FR = "juridique_fr"
     TECHNIQUE = "technique"
@@ -18,7 +20,7 @@ class Domain(str, Enum):
     MIXTE = "mixte"
 
 
-class Strategy(str, Enum):
+class Strategy(StrEnum):
     LINEAR = "linear"
     GRAPH = "graph"
 

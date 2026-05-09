@@ -199,9 +199,16 @@ class GraphDecomposer(Decomposer):
 
 
 def make_decomposer(strategy: Strategy, n_subq: int = 5) -> Decomposer:
-    """Factory — point unique pour A/B test Linear vs Graph."""
+    """Factory — point unique pour A/B test Linear vs Graph.
+
+    Audit externe 2026-05-09 : `case _: raise` ajouté pour détecter
+    immédiatement toute Strategy ajoutée (Phase B : HYBRID, etc.) qui
+    n'aurait pas son décomposeur correspondant.
+    """
     match strategy:
         case Strategy.LINEAR:
             return LinearDecomposer(n_subq)
         case Strategy.GRAPH:
             return GraphDecomposer(n_subq)
+        case _:
+            raise ValueError(f"Unsupported strategy: {strategy!r}")

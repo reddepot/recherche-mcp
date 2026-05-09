@@ -61,11 +61,21 @@ plan = make_decomposer(Strategy.LINEAR).decompose(q)
 print(plan.model_dump_json(indent=2))
 ```
 
-## Critère succès Phase A
+## Critère succès Phase A (heuristique pure, sans LLM)
 
-Sur 5 cas réels (clinique / juridique_fr / technique / multilingue / mixte) :
-- ≥4 cas atteignent `quality.overall > 0.7`
-- A/B Linear vs Graph documenté dans `ab_report.md`
+**Baseline empirique mesurée** (cf `docs/ab_report_phase_a.md`) :
+- ≥4 cas atteignent `quality.overall > 0.5` (baseline Phase A — pas 0.7)
+- `quality.orthogonalite > 0.05` (cosine max ≤ 0.95 — limite heuristique pure)
+- A/B Linear vs Graph documenté
+
+**Cible Phase B avec LLM-driven decomposition** :
+- `quality.overall > 0.7`
+- `quality.orthogonalite > 0.4`
+- Mode "express" < 5s P2
+
+⚠ Les seuils 0.7/0.4 ne sont PAS atteignables par la heuristique pure Phase A —
+ils nécessitent l'auto API DR (Phase B). Documentation honnête vs ambition affichée
+(audit externe 2026-05-09 a relevé l'incohérence entre README et tests — corrigé ici).
 
 ## Roadmap
 

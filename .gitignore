@@ -51,9 +51,16 @@ models_cache/
 logs/
 *.log
 
+# Logs usage permanent (JSONL append-only — JAMAIS committé, contient PII potentielles)
+runs/
+runs/*.jsonl
+runs/.cache/
+!runs/.gitkeep
+
 # Reports A/B
 ab_report*.md
 !docs/kickoff_phaseA_20260509.md
+!docs/ab_report_phase_a.md
 
 # uv
 uv.lock
