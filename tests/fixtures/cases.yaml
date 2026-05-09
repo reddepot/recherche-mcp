@@ -1,0 +1,90 @@
+# 5 cas de test réels pour critère de succès Phase A
+# Critère : ≥4 cas atteignent quality.overall > 0.7
+# A/B Linear vs Graph documenté dans ab_report.md
+
+cases:
+  - name: clinique_burnout_libéral
+    domain: clinique
+    question: |
+      Quelle est la prévalence du burnout chez les médecins du travail libéraux
+      en France 2024-2026, et quels outils de prévention validés sont
+      opérationnalisables en cabinet pluri-praticien ?
+    expected_subq:
+      - "[definition] terminologie burnout vs épuisement professionnel"
+      - "[etat_art] prévalence FR 2024-2026 (HAS, SPF)"
+      - "[cadre_normatif] obligations employeur + médecin (R.4624-*)"
+      - "[risques_limites] sous-déclaration, biais d'auto-évaluation"
+      - "[operationnalisation] outils validés cabinet pluri-praticien"
+    expected_dispatch:
+      - perplexity-deep-research
+      - openai-o3-deep-research
+    confidence_target: 0.80
+
+  - name: juridique_fr_inaptitude_psy
+    domain: juridique_fr
+    question: |
+      Procédure d'inaptitude pour souffrance psychique 2026 : conditions
+      légales, jurisprudence Cass. soc. récente, articulation avec obligation
+      de reclassement et risque de licenciement nul.
+    expected_subq:
+      - "[definition] inaptitude psychique vs RPS"
+      - "[etat_art] articles L.4624-* + L.1226-*"
+      - "[jurisprudence] arrêts Cass. soc. 2024-2026"
+      - "[reclassement] obligations employeur + traçabilité"
+      - "[risques] licenciement nul : critères jurisprudentiels"
+    expected_dispatch:
+      - perplexity-deep-research
+      - chatgpt-deep-research
+    confidence_target: 0.85
+
+  - name: technique_mcp_streamable_http
+    domain: technique
+    question: |
+      Streamable HTTP transport MCP : spec officielle 2026, breaking changes
+      vs SSE, implémentations Python disponibles, trade-offs vs stdio en
+      LAN-only.
+    expected_subq:
+      - "[spec] MCP streamable-http spec 2026"
+      - "[etat_art] implémentations Python (FastMCP, mcp SDK)"
+      - "[trade_offs] vs stdio, vs SSE"
+      - "[ops] déploiement local, certificats, auth"
+      - "[migration] depuis SSE, breaking changes"
+    expected_dispatch:
+      - codex-cli
+      - gemini-cli
+      - openai-o3-deep-research
+    confidence_target: 0.75
+
+  - name: multilingue_iso45003_vs_nfx35102
+    domain: multilingue
+    question: |
+      Comparer ISO 45003 (EN) et NF X35-102 (FR) : périmètre, opposabilité,
+      articulation DUERP, retex industriels 2024-2026 en EN/FR/DE.
+    expected_subq:
+      - "[terminologie] équivalences EN/FR/DE"
+      - "[perimetre] ISO vs NF : objet, audience"
+      - "[opposabilite] valeur juridique comparée"
+      - "[articulation_duerp] intégration pratique FR"
+      - "[retex] cas industriels documentés"
+    expected_dispatch:
+      - qwen-max-deep-research
+      - gemini-deep-research-apps
+    confidence_target: 0.70
+
+  - name: mixte_teleconsultation_mt
+    domain: mixte
+    question: |
+      Téléconsultation en médecine du travail : cadre légal FR 2026, outils
+      logiciels conformes RGPD/HDS, retex équipes SST, comparaison Espagne et
+      Allemagne, risque médico-légal du diagnostic à distance.
+    expected_subq:
+      - "[cadre_legal_fr] CT + jurisprudence + recommandations"
+      - "[outils_techniques] logiciels HDS + intégration DPI"
+      - "[retex_terrain] équipes SST 2024-2026"
+      - "[comparaison_int] Espagne, Allemagne"
+      - "[risque_medlegal] diagnostic à distance : limites"
+    expected_dispatch:
+      - anthropic-claude-web-search
+      - perplexity-deep-research
+      - qwen-max-deep-research
+    confidence_target: 0.75

@@ -1,0 +1,74 @@
+# Matrice dispatch v0.1 — domaine → modèles candidats
+# Versionnée Gitea (post-Phase A push).
+# Reload à chaud: kill -SIGHUP $(pgrep -f recherche-mcp)
+# Priorité : 1=top, 3=fallback. Max 3 candidats par sous-Q.
+
+clinique:
+  - name: perplexity-deep-research
+    rationale: "Index multi-sources médicales FR (HAS, SPF, INRS), citations vérifiables."
+    invocation: auto
+    priority: 1
+  - name: openai-o3-deep-research
+    rationale: "Raisonnement chaîné sur épidémiologie + cadre normatif."
+    invocation: auto
+    priority: 2
+  - name: anthropic-claude-web-search
+    rationale: "Vérification croisée avec citations natives."
+    invocation: auto
+    priority: 3
+
+juridique_fr:
+  - name: perplexity-deep-research
+    rationale: "Légifrance + Dalloz indexés, articles cités précisément."
+    invocation: auto
+    priority: 1
+  - name: chatgpt-deep-research
+    rationale: "Synthèse longue avec jurisprudence récente Cass. soc."
+    invocation: manual
+    priority: 2
+  - name: kimi-swarm
+    rationale: "Vérification multi-sources FR, bon rappel sur doctrine."
+    invocation: manual
+    priority: 3
+
+technique:
+  - name: codex-cli
+    rationale: "Exécute le code, vérifie les imports et versions."
+    invocation: auto
+    priority: 1
+  - name: gemini-cli
+    rationale: "Context long sur repos GitHub entiers."
+    invocation: auto
+    priority: 2
+  - name: openai-o3-deep-research
+    rationale: "Synthèse architecturale + trade-offs."
+    invocation: auto
+    priority: 3
+
+multilingue:
+  - name: qwen-max-deep-research
+    rationale: "Excellente couverture EN+ZH, terminologie comparée."
+    invocation: manual
+    priority: 1
+  - name: gemini-deep-research-apps
+    rationale: "Recherche multilingue large, sources internationales."
+    invocation: manual
+    priority: 2
+  - name: perplexity-deep-research
+    rationale: "Vérification croisée côté FR."
+    invocation: auto
+    priority: 3
+
+mixte:
+  - name: anthropic-claude-web-search
+    rationale: "Polyvalent, citations natives, défaut sûr."
+    invocation: auto
+    priority: 1
+  - name: perplexity-deep-research
+    rationale: "Couverture FR + multi-sources."
+    invocation: auto
+    priority: 2
+  - name: openai-o3-deep-research
+    rationale: "Raisonnement multi-domaines."
+    invocation: auto
+    priority: 3
