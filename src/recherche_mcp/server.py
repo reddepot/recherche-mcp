@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import logging
 import sys
+import time
 from typing import Literal
 
 import click
 
+from . import usage
 from .decompose import make_decomposer
 from .dispatch import DispatchMatrix
 from .models import Domain, Question, ResearchPlan, Strategy
@@ -65,8 +67,27 @@ def decompose_question(
         )
     domain_enum = Domain(domain) if domain else None
     q = Question(text=text, domain=domain_enum)
-    plan = make_decomposer(Strategy(strategy), n_subq=n_subq).decompose(q)
-    return plan.model_dump(mode="json")
+
+    t0 = time.perf_counter()
+    plan = None
+    error: str | None = None
+    try:
+        plan = make_decomposer(Strategy(strategy), n_subq=n_subq).decompose(q)
+        return plan.model_dump(mode="json")
+    except Exception as exc:
+        error = f"{type(exc).__name__}: {exc}"
+        raise
+    finally:
+        latency_ms = (time.perf_counter() - t0) * 1000
+        usage.log_event(
+            question=text,
+            domain=domain,
+            strategy=strategy,
+            n_subq_requested=n_subq,
+            plan=plan,
+            latency_ms=latency_ms,
+            error=error,
+        )
 
 
 @mcp.tool()
@@ -125,6 +146,7 @@ def main(transport: str, no_log: bool, log_level: str):
     """Lance le serveur MCP recherche-mcp."""
     if no_log:
         logging.disable(logging.CRITICAL)
+        usage.disable()  # désactive aussi le log usage JSONL
     else:
         logging.basicConfig(
             level=getattr(logging, log_level),
