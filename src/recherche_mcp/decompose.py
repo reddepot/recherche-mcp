@@ -43,6 +43,22 @@ _CANONICAL_AXES: list[tuple[str, str]] = [
 ]
 
 
+def extract_subject(text: str) -> str:
+    """Extrait un sujet court (~ 80-120 chars) pour réduire similarité brute.
+
+    Phase A : prend les 120 premiers chars (coupe à un séparateur de mot).
+    Phase B : NER + extraction d'entités nommées.
+
+    Module-level pour éviter le couplage fratricide entre LinearDecomposer
+    et GraphDecomposer (POLYLENS Gemini+Kimi P2).
+    """
+    text = text.strip()
+    if len(text) <= 120:
+        return text
+    cut = text[:120].rsplit(" ", 1)[0]
+    return f"{cut}..."
+
+
 class Decomposer(ABC):
     """Interface : produire un ResearchPlan complet à partir d'une Question."""
 
@@ -59,10 +75,9 @@ class LinearDecomposer(Decomposer):
         self.n_subq = n_subq
 
     def decompose(self, q: Question) -> ResearchPlan:
-        axes = self._select_axes(q.domain, self.n_subq)
+        axes = self._select_axes(self.n_subq)
         subqs = [self._build_subq(q, axis) for axis in axes]
 
-        # Lazy import pour éviter circular (DispatchMatrix peut importer models)
         from .dispatch import DispatchMatrix
         dispatch = DispatchMatrix.current().resolve(subqs)
 
@@ -77,16 +92,17 @@ class LinearDecomposer(Decomposer):
             quality=quality,
         )
 
-    def _select_axes(self, domain: Domain | None, n: int) -> list[tuple[str, str]]:
+    def _select_axes(self, n: int) -> list[tuple[str, str]]:
+        # POLYLENS Claude AXE-1 P3 fix : domain n'était pas utilisé. Phase B
+        # pourra ajuster les axes par domaine (ex : juridique → cadre_normatif
+        # en premier).
         return _CANONICAL_AXES[:n]
 
     def _build_subq(self, q: Question, axis: tuple[str, str]) -> SubQuestion:
         # Phase A : heuristique avec verbe différenciant par axe.
         # Phase B : LLM call pour vraie reformulation orthogonale.
         axis_label, axis_verb = axis
-        # Tronque la question parente à son sujet principal (évite duplication
-        # du texte intégral qui plombe l'orthogonalité)
-        subject = self._extract_subject(q.text)
+        subject = extract_subject(q.text)
         return SubQuestion(
             parent_id=q.id,
             text=f"[{axis_label}] {axis_verb} {subject}",
@@ -97,20 +113,6 @@ class LinearDecomposer(Decomposer):
             domain_hint=q.domain or Domain.MIXTE,
             confidence=0.75,
         )
-
-    @staticmethod
-    def _extract_subject(text: str) -> str:
-        """Extrait un sujet court (~ 80-120 chars) pour réduire similarité brute.
-
-        Heuristique simple Phase A : prend les 100 premiers chars + "..." si tronqué.
-        Phase B : NER + extraction d'entités nommées.
-        """
-        text = text.strip()
-        if len(text) <= 120:
-            return text
-        # Coupe à un séparateur de mot
-        cut = text[:120].rsplit(" ", 1)[0]
-        return f"{cut}..."
 
 
 class GraphDecomposer(Decomposer):
@@ -127,7 +129,7 @@ class GraphDecomposer(Decomposer):
 
     def decompose(self, q: Question) -> ResearchPlan:
         domain = q.domain or Domain.MIXTE
-        subject = LinearDecomposer._extract_subject(q.text)
+        subject = extract_subject(q.text)
 
         root = SubQuestion(
             parent_id=q.id,

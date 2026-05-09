@@ -12,17 +12,19 @@ import sys
 from typing import Literal
 
 import click
-from fastmcp import FastMCP
 
 from .decompose import make_decomposer
 from .dispatch import DispatchMatrix
 from .models import Domain, Question, ResearchPlan, Strategy
+from .port import FastMCPAdapter
 from .prompts.render import render_subprompts
 from .safety import has_potential_pii, redact_pii
 
 logger = logging.getLogger("recherche_mcp")
 
-mcp = FastMCP(
+# Façade découplée (POLYLENS CONV-1 fix).
+# server.py ne dépend plus directement de FastMCP — seul FastMCPAdapter.
+_adapter = FastMCPAdapter(
     name="recherche",
     instructions=(
         "Décomposition orthogonale de questions de recherche en 4-6 sous-prompts "
@@ -30,6 +32,7 @@ mcp = FastMCP(
         "d'auto API DR ; le skill paste manuel. Strategy linear|graph A/B testable."
     ),
 )
+mcp = _adapter.native  # @mcp.tool() decorators ci-dessous (legacy FastMCP)
 
 
 @mcp.tool()
@@ -95,9 +98,8 @@ def catalog_sources(
     Returns:
         Liste de dicts {name, rationale, invocation, priority}.
     """
-    matrix = DispatchMatrix.current()
-    cands = matrix._data.get(domain, matrix._data.get("mixte", []))
-    return sorted(cands, key=lambda c: c.get("priority", 99))
+    # Utilise l'API publique get_candidates (POLYLENS Kimi P2 fix)
+    return DispatchMatrix.current().get_candidates(domain)
 
 
 @click.command()
@@ -129,23 +131,27 @@ def main(transport: str, no_log: bool, log_level: str):
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             stream=sys.stderr,  # stdout est réservé au protocole MCP
         )
-        # Filtre PII sur tous les records produits par recherche_mcp.*
+        # Formatter avec rédaction PII (POLYLENS Kimi P2 fix : Formatter > Filter)
         for handler in logging.getLogger().handlers:
-            handler.addFilter(_PIIRedactFilter())
-    mcp.run(transport=transport)
+            handler.setFormatter(_PIIRedactFormatter(handler.formatter))
+    _adapter.run(transport=transport)
 
 
-class _PIIRedactFilter(logging.Filter):
-    """Filtre PII appliqué aux logs (Q3 décision user 2026-05-09)."""
+class _PIIRedactFormatter(logging.Formatter):
+    """Formatter qui caviarde les PII dans le message final (POLYLENS Kimi).
 
-    def filter(self, record: logging.LogRecord) -> bool:
-        if isinstance(record.msg, str):
-            record.msg = redact_pii(record.msg)
-        if record.args:
-            record.args = tuple(
-                redact_pii(a) if isinstance(a, str) else a for a in record.args
-            )
-        return True
+    Préférable à un Filter qui mute le LogRecord en place : non destructif,
+    idempotent, n'affecte pas les autres handlers.
+    """
+
+    def __init__(self, base: logging.Formatter | None = None):
+        self._base = base or logging.Formatter(
+            "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        )
+
+    def format(self, record: logging.LogRecord) -> str:
+        rendered = self._base.format(record)
+        return redact_pii(rendered)
 
 
 if __name__ == "__main__":
