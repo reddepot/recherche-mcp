@@ -1,12 +1,13 @@
-# Pondération des 6 critères qualité par domaine (ADR-0002).
+# Pondération des 6 critères qualité par domaine (cf ADR-0002).
 #
-# Audit externe 2026-05-09 (Kimi P1) : `quality.overall` était une moyenne
-# simple non pondérée. Pour le domaine juridique, `cadre_normatif` (couverture
-# législative) est plus critique que `comparaison_int`. Pour technique,
-# `operationnalisation` (code runnable) l'emporte sur `praticien_cible`.
+# Une moyenne simple équipondérée masquerait les priorités métier réelles.
+# Exemple : pour le juridique, la `couverture` (exhaustivité des articles
+# applicables) compte davantage que la `comparaison_int` (jurisprudence
+# étrangère). Pour le technique, la `clarte` (code lisible et runnable)
+# l'emporte sur `tracabilite`.
 #
 # Format : domain → {critere: poids}. Somme des poids = 1.0 par domaine.
-# Phase B : poids ajustables via DEVCODE-Vote ou DSPy si DSPY_GATE atteint.
+# Évolution future possible via DEVCODE-Vote ou DSPy (cf DSPY_GATE).
 
 clinique:
   couverture: 0.20
@@ -41,7 +42,7 @@ multilingue:
   tracabilite: 0.15
 
 mixte:
-  # Pondération neutre = moyenne simple (compat backward Phase A v0.2)
+  # Pondération neutre = moyenne simple (pas de prior métier identifiable)
   couverture: 0.166667
   orthogonalite: 0.166667
   autonomie: 0.166667

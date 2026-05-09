@@ -1,23 +1,21 @@
 # recherche-mcp — MCP server pour décomposition orthogonale + dispatch matrice
 
-**Phase A v0.1 — Voie 3 minimal** (8-12 j-h, 2026-05-09 → +1 sem)
-
-Serveur MCP exposant 3 outils pour formaliser la décomposition orthogonale de questions de recherche complexes en 4-6 sous-prompts experts spécialisés par domaine, avec annonce de matrice dispatch vers modèles candidats (Perplexity DR, OpenAI o3, Anthropic web_search, Gemini DR, Kimi Swarm, Qwen Max DR, Codex/Gemini/Kimi CLI).
+Serveur MCP exposant 3 outils pour formaliser la **décomposition orthogonale** de questions de recherche complexes en 4-6 sous-prompts experts spécialisés par domaine, avec annonce de **matrice de dispatch** vers modèles candidats (Perplexity DR, OpenAI o3-DR, Anthropic web_search, Gemini DR, Kimi Swarm, Qwen Max DR, Codex/Gemini/Kimi CLI).
 
 Conçu comme **back-end métier** du skill Claude Code `/recherche` (front-end conversationnel passif).
 
 ## Statut
 
-🚧 Phase A en construction (Jour 1, 2026-05-09).
+Phase A livrée et auditée. Phase B (auto API DR) en préparation — voir `docs/phase_b_kickoff.md`.
 
 ## Décisions structurelles
 
-Issues du DEVCODE-Vote P0 sur 13 voix initiales + 4 voix challenge (ADR : `~/.claude/projects/-Users-radu/memory/decision_recherche_skill_devcode_20260508.md`) :
-
-- **D Hybride packaging** : Python MCP server + skill `.md` léger + binding CLI optionnel
-- **H' Décomposition orthogonale** 4-6 sous-questions MECE (graphe ou linéaire, A/B testable)
-- **Transport stdio** uniquement (pas Streamable HTTP en LAN-only)
-- **DSPy MIPROv2 OUT** Phase A (`DSPY_GATE` en commentaire `decompose.py`)
+- **Hybride packaging** : Python MCP server (FastMCP) + skill `.md` léger + binding CLI optionnel
+- **Décomposition orthogonale** 4-6 sous-questions MECE (graphe ou linéaire, A/B testable)
+- **Axes par domaine** chargés depuis `data/axes_by_domain.yaml` (clinique, juridique_fr, technique, multilingue, mixte)
+- **Pondération qualité par domaine** (`data/quality_weights.yaml`, ADR-0002)
+- **Transport stdio** uniquement en Phase A (Streamable HTTP + OAuth réservés Phase B/C)
+- **DSPy MIPROv2 OUT** Phase A (`DSPY_GATE` 3 conditions de réveil dans `decompose.py`)
 
 ## Architecture
 
@@ -64,23 +62,22 @@ print(plan.model_dump_json(indent=2))
 ## Critère succès Phase A (heuristique pure, sans LLM)
 
 **Baseline empirique mesurée** (cf `docs/ab_report_phase_a.md`) :
-- ≥4 cas atteignent `quality.overall > 0.5` (baseline Phase A — pas 0.7)
-- `quality.orthogonalite > 0.05` (cosine max ≤ 0.95 — limite heuristique pure)
+- ≥4 cas sur 5 atteignent `quality.overall > 0.5`
+- `quality.orthogonalite > 0.05` (cosine max ≤ 0.95)
 - A/B Linear vs Graph documenté
 
 **Cible Phase B avec LLM-driven decomposition** :
 - `quality.overall > 0.7`
 - `quality.orthogonalite > 0.4`
-- Mode "express" < 5s P2
+- Mode "express" < 5s pour P2
 
-⚠ Les seuils 0.7/0.4 ne sont PAS atteignables par la heuristique pure Phase A —
-ils nécessitent l'auto API DR (Phase B). Documentation honnête vs ambition affichée
-(audit externe 2026-05-09 a relevé l'incohérence entre README et tests — corrigé ici).
+Les seuils 0.7 / 0.4 ne sont pas atteignables par la heuristique pure Phase A —
+ils nécessitent l'auto API DR (Phase B).
 
 ## Roadmap
 
-- **Phase B (35-50 j-h)** : auto API DR (Perplexity Sonar, OpenAI o3-DR, Anthropic web_search, xAI grok), policy engine, mode express, logs hash-chain. Voir ADR.
-- **Phase C (88-132 j-h)** : LangGraph orchestrateur + 4 sub-agents + Postgres checkpointer + NLI checker + dossier argumentaire JSON + revue CNIL/HDS. Voir ADR.
+- **Phase B (estim. 25-40 j-h)** : auto API DR (Perplexity Sonar, OpenAI o3-DR, Anthropic web_search, xAI grok), policy engine côté serveur, mode express bypass, audit hash-chain, fallback Mistral local. Voir `docs/phase_b_kickoff.md`.
+- **Phase C (estim. 60-100 j-h)** : LangGraph orchestrateur + sub-agents spécialisés + Postgres checkpointer + NLI checker + dossier argumentaire JSON + revue CNIL/HDS pour usage opposable médico-légal.
 
 ## Logs usage permanent (Phase A → B data-driven)
 
@@ -100,11 +97,14 @@ Override path : `RECHERCHE_MCP_RUNS_DIR=/custom/path` env var.
 
 ## Doc
 
-- `docs/kickoff_phaseA_20260509.md` — kickoff document complet (Opus 4.7)
-- `docs/polylens_audit_phaseA_20260509.md` — audit POLYLENS allégé 4 voix
-- `docs/phase_b_kickoff.md` — préparation Phase B (γ-α dispatch auto)
-- `docs/decisions/` — ADRs locaux du projet
+- `docs/decisions/` — ADRs actifs du projet
+  - `0001-dspy-out-phase-a.md` — DSPY_GATE (3 conditions de réveil DSPy MIPROv2)
+  - `0002-quality-weights.md` — pondération des 6 critères qualité par domaine
 - `docs/ab_report_phase_a.md` — A/B Linear vs Graph 5/5 cas baseline
+- `docs/phase_b_kickoff.md` — préparation Phase B (γ-α dispatch auto)
+- `docs/audit_external_prompt.md` — prompt audit externe modèle-agnostic
+- `docs/audit_gemini_prompt.md` — prompt audit externe spécifique Gemini DR Apps
+- `docs/_archive/` — artefacts historiques (kickoff initial, audit POLYLENS interne)
 
 ## Licence
 

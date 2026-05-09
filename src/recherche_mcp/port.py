@@ -2,12 +2,10 @@
 
 Permet de remplacer FastMCP par un autre SDK MCP (officiel ou autre) sans
 toucher au code métier. Conformément au principe Capability-Context Separation
-(GLM 4.6, ADR 2026-05-08).
+(cf ADR principal).
 
-Audit externe 2026-05-09 (4 voix : ChatGPT/DeepSeek/Kimi/Grok) : précédente
-implémentation exposait `.native` qui contournait l'abstraction (faux découplage).
-**Cette version supprime `.native`** : le seul moyen d'enregistrer un tool est
-`register_tool()`. Le code métier (server.py) ne touche jamais FastMCP directement.
+Le seul moyen d'enregistrer un tool est `register_tool()`. Le code métier ne
+touche jamais FastMCP directement (pas d'accès à l'instance native exposé).
 """
 
 from __future__ import annotations
@@ -49,8 +47,6 @@ class FastMCPAdapter(MCPServerPort):
     Découple le code métier (server.py) du SDK FastMCP. Si breaking changes
     pré-1.0 dans FastMCP ou migration vers SDK officiel mcp 1.x, seul cet
     adapter doit être modifié.
-
-    Audit externe 2026-05-09 : `.native` retiré pour vrai découplage.
     """
 
     def __init__(self, name: str, instructions: str = ""):

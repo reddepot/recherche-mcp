@@ -1,4 +1,4 @@
-"""Tests log usage permanent (Phase A v0.2 — feature itération Phase B)."""
+"""Tests du log usage permanent (`usage.py`)."""
 
 from __future__ import annotations
 

@@ -1,19 +1,19 @@
 # ADR-0002 — Pondération des critères qualité par domaine
 
 **Date** : 2026-05-09
-**Statut** : Accepté (Phase A v0.3, post audit externe 4 voix)
-**Référence** : `decision_recherche_skill_devcode_20260508.md` (ADR principal)
+**Statut** : Accepté
+**Référence** : ADR principal du projet (mémoire utilisateur).
 
 ## Contexte
 
-L'audit externe 2026-05-09 (Kimi P1, ChatGPT/DeepSeek/Grok implicites) a identifié que `QualityScores.overall` était une moyenne simple non pondérée des 6 critères : couverture, orthogonalité, autonomie, clarté, balance, traçabilité.
+`QualityScores.overall` calculait initialement une moyenne simple non pondérée des 6 critères : couverture, orthogonalité, autonomie, clarté, balance, traçabilité.
 
 Cette équipondération produit une métrique aveugle aux priorités métier :
 - Pour le domaine **clinique**, la traçabilité (Loi Kouchner Art. L1110-5 CSP, Art. L4624-8 CT 50 ans) est critique — bien plus que la balance des longueurs textuelles.
 - Pour le domaine **juridique_fr**, la couverture (exhaustivité des articles L./R./D. applicables) est primordiale.
 - Pour le domaine **technique**, la clarté (code runnable, sans ambiguïté) compte plus que le cadre normatif.
 
-POLYLENS interne avait déjà signalé que la `DSPY_GATE` exigeait « consensus user sur poids des 6 critères » comme l'une des 3 conditions de réveil DSPy. Cet ADR explicite la pondération **avant** Phase B.
+La gate `DSPY_GATE` (cf `decompose.py`) exige notamment un « consensus sur les poids des 6 critères » comme l'une des trois conditions de réveil de MIPROv2. Cet ADR explicite cette pondération **avant** Phase B.
 
 ## Décision
 
@@ -48,7 +48,7 @@ Pondération par domaine externalisée dans `src/recherche_mcp/data/quality_weig
 - Faux-amis terminologiques = orthogonalité critique
 
 #### Mixte (équipondération)
-- Backward compatible avec Phase A v0.2 (moyenne simple)
+- Le profil `mixte` reste équipondéré (équivalent moyenne simple) pour les questions sans domaine spécifique
 - Domaine non spécialisé : pas de prior métier
 
 ## Conséquences
@@ -60,9 +60,9 @@ Pondération par domaine externalisée dans `src/recherche_mcp/data/quality_weig
 - YAML externe = ajustable sans redeploy (cohérent avec dispatch_matrix.yaml).
 
 ### Négatives / Risques
-- Risque d'overfit : les poids reflètent l'intuition user 2026-05-09, pas une étude empirique.
-- Le total user_rating de 30 décompositions notées (DSPY_GATE condition (a)) pourrait suggérer des poids différents.
-- Phase B : DEVCODE-Vote sur les poids quand n=30 décompositions disponibles.
+- Risque d'overfit : les poids reflètent l'intuition initiale du designer, pas une étude empirique.
+- Le retour de N décompositions notées peut suggérer des poids différents (cf DSPY_GATE).
+- Une délibération formalisée sur les poids (DEVCODE-Vote) sera utile une fois ≥30 décompositions disponibles.
 
 ### Réversibilité
 **Réversible facilement** : changer le YAML ne nécessite ni redeploy ni migration.
@@ -96,16 +96,15 @@ class QualityScores(BaseModel):
 
 ## Évidence
 
-- Audit externe 2026-05-09 (4 voix) : Kimi P1 explicite, ChatGPT P1 implicite via baseline 0.7 vs 0.5.
-- POLYLENS interne CONV-X : DSPY_GATE condition (b) non instrumentée signalée.
 - YAML créé : `src/recherche_mcp/data/quality_weights.yaml`.
+- Implémentation : `quality.get_weights_for_domain()` + `models.QualityScores.overall` lazy.
 
-## Statut DSPY_GATE post-ADR
+## Statut DSPY_GATE après cet ADR
 
-| Condition | Avant | Après ADR-0002 |
-|---|---|---|
-| (a) ≥30 décompositions notées ≥0.7 | ❌ Non instrumenté | ❌ encore non instrumenté |
-| (b) Consensus user sur poids | ❌ N/A | ✅ ADR-0002 |
-| (c) Baseline Linear/Graph stable | ✅ ab_report Phase A | ✅ |
+| Condition | Statut |
+|---|---|
+| (a) ≥30 décompositions notées avec scores ≥ 0.7 | À mesurer (collecte logs usage en cours) |
+| (b) Consensus sur poids des 6 critères | ✅ Acté par cet ADR |
+| (c) Baseline Linear/Graph stable | ✅ `docs/ab_report_phase_a.md` |
 
-**Verdict** : 2/3 conditions remplies. Reste (a) — collecte log usage Phase A 7+ jours requise.
+Reste donc à instrumenter et collecter (a) avant de réveiller MIPROv2.

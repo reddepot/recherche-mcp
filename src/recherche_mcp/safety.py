@@ -1,27 +1,24 @@
-"""Filtre anti-PII pour logs (Q3 décision user 2026-05-09).
+"""Filtre anti-PII pour logs côté serveur MCP.
 
-Phase A v0.3 (post-audit externe 4 voix) : regex étendus pour usage médecin
-du travail français — NIR (avec INIR neutre 3/4), Corse 2A/2B, IPP, RPPS,
-ADELI, FINESS, SIRET, IBAN, noms propres avec contexte.
+Patterns regex pour usage médecin du travail français :
+- NIR (avec sexe 1-4 anticipant INIR neutre Décret 2024-1021, Corse 2A/2B)
+- Identifiants professionnels santé : RPPS, ADELI, FINESS, IPP
+- Identifiants entreprise : SIRET, IBAN
+- Coordonnées : téléphone FR, email, date naissance
+- Noms propres avec titre (heuristique, NER prévu en évolution future)
 
-Phase B : NER + classifier + audit séparé.
+Limitations connues :
+- Regex permissifs (séparateurs variés . - / espace) au prix de faux positifs
+- Détection de noms sans titre laissée à l'évolution future (NER)
+- Faux positifs SIRET sans contexte mot-clé
 
-Limitations connues et documentées :
-- Les regex sont volontairement permissifs (accept séparateurs variés . - / espace)
-- Faux positifs acceptés sur SIRET/IBAN car contexte médical les côtoie rarement
-- Détection de noms propres heuristique (préfixe + capitalisation) — Phase B = NER
-
-Référence : INIR neutre [Décret n°2024-1021](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000050039341),
-Ameli https://www.ameli.fr/assure/droits-demarches/principes/numero-securite-sociale.
+Références : INIR neutre [Décret n°2024-1021](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000050039341),
+[Ameli — numéro sécurité sociale](https://www.ameli.fr/assure/droits-demarches/principes/numero-securite-sociale).
 """
 
 from __future__ import annotations
 
 import re
-
-# ============================================================================
-# Patterns FR — étendus post audit externe 2026-05-09
-# ============================================================================
 
 # NIR : sexe(1)+année(2)+mois(2)+département(2 ou 2A/2B Corse)+commune(3)+ordre(3)+clé(2)
 # Audit Kimi : INIR neutre (sexe 3/4) prévu décret 2024-1021 → pattern [1-4]

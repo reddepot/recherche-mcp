@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, ValidationInfo, field_validator, model_va
 
 
 class Domain(StrEnum):
-    """StrEnum (Python 3.11+) — audit externe 2026-05-09 ChatGPT+DeepSeek P3."""
+    """Domaines de questions reconnus par le pipeline de décomposition."""
 
     CLINIQUE = "clinique"
     JURIDIQUE_FR = "juridique_fr"
@@ -71,14 +71,14 @@ class QualityScores(BaseModel):
     clarte: float = Field(ge=0.0, le=1.0)
     balance: float = Field(ge=0.0, le=1.0)
     tracabilite: float = Field(ge=0.0, le=1.0)
-    domain: Domain = Domain.MIXTE  # nouveau Phase A v0.3 pour overall pondéré
+    domain: Domain = Domain.MIXTE  # contexte de pondération de overall
 
     @property
     def overall(self) -> float:
-        """Pondération par domaine (ADR-0002 — audit externe Kimi P1).
+        """Score global pondéré par domaine.
 
-        Phase A v0.2 utilisait moyenne simple. Phase A v0.3 charge les poids
-        depuis quality_weights.yaml par domaine.
+        Les poids des 6 critères sont chargés depuis `quality_weights.yaml`
+        et reflètent les priorités métier par domaine (cf ADR-0002).
         """
         from .quality import get_weights_for_domain  # lazy import (évite circular)
         weights = get_weights_for_domain(self.domain)
@@ -104,7 +104,7 @@ class ResearchPlan(BaseModel):
         """Dispatch couvre exactement les sub_questions, sans doublons."""
         sq_ids = {s.id for s in info.data.get("sub_questions", [])}
         d_ids = [d.sub_question_id for d in v]
-        # Anti-doublons (POLYLENS Codex P1)
+        # Anti-doublons : un sub_question_id ne doit apparaître qu'une fois
         if len(d_ids) != len(set(d_ids)):
             raise ValueError(
                 "dispatch contient des sub_question_id dupliqués"
@@ -117,10 +117,8 @@ class ResearchPlan(BaseModel):
 
     @model_validator(mode="after")
     def _edges_reference_existing_subqs(self) -> "ResearchPlan":
-        """Tous les edges référencent des sub_questions existantes (POLYLENS Gemini P0).
-
-        Empêche les graphes rompus en silence : un edge avec un source_id
-        ou target_id non présent dans sub_questions est invalide.
+        """Intégrité référentielle : tous les edges pointent vers des
+        sub_questions existantes. Empêche les graphes rompus en silence.
         """
         sq_ids = {s.id for s in self.sub_questions}
         for edge in self.edges:

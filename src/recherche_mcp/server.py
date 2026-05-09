@@ -1,12 +1,11 @@
 """Entrypoint serveur MCP — stdio transport uniquement (Phase A).
 
-Décision architecturale : pas de Streamable HTTP en LAN-only (sur-engineering
-selon Kimi+GLM, ADR 2026-05-08). HTTP transport sera réservé à Phase B Sprint 5
-pour binding distant avec OAuth+mTLS.
+Décision architecturale : pas de Streamable HTTP en LAN-only (sur-engineering).
+HTTP transport sera ajouté Phase B/C avec OAuth+mTLS pour binding distant.
 
-Audit externe 2026-05-09 (4 voix unanimes P0) : abstraction `MCPServerPort`
-était bypassée par `.native`. Cette version utilise EXCLUSIVEMENT
-`_adapter.register_tool()`. Le code métier ne touche plus FastMCP directement.
+L'enregistrement des outils passe EXCLUSIVEMENT par `_adapter.register_tool()`
+via la façade `MCPServerPort` — aucun import direct de FastMCP dans le code
+métier (port hexagonal pour découpler du SDK).
 """
 
 from __future__ import annotations
@@ -70,8 +69,8 @@ def decompose_question(
         plan = make_decomposer(Strategy(strategy), n_subq=n_subq).decompose(q)
         return plan.model_dump(mode="json")
     except (ValueError, RuntimeError) as exc:
-        # Audit externe 2026-05-09 Grok P1 : exceptions typées au lieu de
-        # broad except Exception. Erreurs métier explicites.
+        # Erreurs métier typées (validation Pydantic, dispatch invalide, etc.).
+        # Tout autre type d'exception remonte non-capturé.
         error = f"{type(exc).__name__}: {exc}"
         raise
     finally:
@@ -124,9 +123,8 @@ def catalog_sources(
 def build_adapter() -> FastMCPAdapter:
     """Construit l'adapter MCP et y enregistre les 3 outils via le Port.
 
-    Audit externe 2026-05-09 : aucune dépendance directe à FastMCP dans le
-    code métier. Si on veut swap vers SDK officiel mcp 1.x, seul cet appel
-    + l'implémentation de FastMCPAdapter changent.
+    Aucune dépendance directe à FastMCP dans le code métier : un swap vers
+    un autre SDK MCP ne nécessite de modifier que `FastMCPAdapter`.
     """
     adapter = FastMCPAdapter(
         name="recherche",
@@ -185,8 +183,8 @@ def main(transport: str, no_log: bool, log_level: str):
             format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
             stream=sys.stderr,  # stdout est réservé au protocole MCP
         )
-        # Filter racine + Formatter combinés pour couvrir handlers tiers
-        # (audit externe 2026-05-09 ChatGPT P1).
+        # Filter racine + Formatter combinés pour couvrir aussi les handlers
+        # ajoutés ultérieurement par bibliothèques tierces.
         root = logging.getLogger()
         root.addFilter(_PIIRedactFilter())
         for handler in root.handlers:
@@ -199,9 +197,9 @@ def main(transport: str, no_log: bool, log_level: str):
 class _PIIRedactFormatter(logging.Formatter):
     """Formatter qui caviarde les PII dans le message final.
 
-    Audit externe 2026-05-09 : combiné avec _PIIRedactFilter au niveau racine
-    pour couvrir handlers ajoutés par bibliothèques tierces (sentence-transformers,
-    fastmcp). Idempotent grâce à `[REDACTED-*]` markers.
+    Combiné avec `_PIIRedactFilter` au niveau racine pour couvrir aussi
+    les handlers ajoutés par bibliothèques tierces (sentence-transformers,
+    fastmcp). Idempotent grâce aux markers `[REDACTED-*]`.
     """
 
     def __init__(self, base: logging.Formatter | None = None):
@@ -215,11 +213,11 @@ class _PIIRedactFormatter(logging.Formatter):
 
 
 class _PIIRedactFilter(logging.Filter):
-    """Filter racine qui redige PII dans record.msg avant tout handler.
+    """Filter racine qui caviarde les PII dans `record.msg` avant tout handler.
 
-    Audit externe 2026-05-09 ChatGPT P1 : Formatter sur handlers existants
-    seulement ne couvre pas les handlers ajoutés ultérieurement. Ce Filter
-    racine garantit la rédaction même pour handlers tiers.
+    Un Formatter sur les handlers existants ne couvre pas ceux ajoutés
+    ultérieurement par d'autres bibliothèques. Ce Filter au niveau racine
+    garantit la rédaction sur l'ensemble du logging.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:

@@ -1,17 +1,15 @@
 """Décomposeurs Linear / Graph + factory. A/B testable.
 
+Les axes canoniques sont chargés depuis `data/axes_by_domain.yaml` et adaptés
+au domaine de la question (clinique, juridique_fr, technique, multilingue,
+mixte). Pas d'utilisation uniforme d'axes pour tous les domaines.
+
 DSPY_GATE: réintroduire MIPROv2 quand 3 conditions:
   (a) ≥30 décompositions notées (≥0.7 sur 6 critères)
   (b) consensus user sur poids des 6 critères → métrique scalaire défendable
   (c) baseline LinearDecomposer/GraphDecomposer mesuré et stable
 
 Sinon: NE PAS réveiller. Optionnel = illusion. Trigger = engagement.
-
-Audit externe 2026-05-09 : axes par domaine via `axes_by_domain.yaml`
-(4/4 voix unanimes P0 — axes uniformes SST inadaptés aux autres domaines).
-
-Référence ADR : ~/.claude/projects/-Users-radu/memory/decision_recherche_skill_devcode_20260508.md
-Décision Phase A : 2026-05-09 (kickoff Opus 4.7).
 """
 
 from __future__ import annotations
@@ -84,8 +82,8 @@ def extract_subject(text: str) -> str:
     Phase A : prend les 120 premiers chars (coupe à un séparateur de mot).
     Phase B : NER + extraction d'entités nommées.
 
-    Module-level pour éviter le couplage fratricide entre LinearDecomposer
-    et GraphDecomposer (POLYLENS Gemini+Kimi P2).
+    Module-level pour éviter le couplage entre les décompositions Linear et
+    Graph qui partagent cette utilité.
     """
     text = text.strip()
     if len(text) <= 120:
@@ -97,9 +95,10 @@ def extract_subject(text: str) -> str:
 class DispatchResolver:
     """Protocol pour résoudre les candidats d'une liste de sous-questions.
 
-    Audit externe 2026-05-09 (4/4 voix P1) : Decomposer ne devrait pas connaître
-    DispatchMatrix singleton directement. Cette interface permet l'injection
-    explicite (DI) en tests, ainsi que des résolveurs alternatifs Phase B.
+    L'injection explicite via cette interface évite que `Decomposer` dépende
+    directement du singleton `DispatchMatrix`, ce qui simplifie les tests
+    (mocks faciles) et permet des résolveurs alternatifs (multi-utilisateurs,
+    A/B de matrices, etc.).
     """
 
     def resolve(self, subqs: list[SubQuestion]) -> list:
@@ -116,8 +115,8 @@ def _default_resolver() -> DispatchResolver:
 class Decomposer(ABC):
     """Interface : produire un ResearchPlan complet à partir d'une Question.
 
-    Audit externe 2026-05-09 : `dispatch_resolver` injecté en option (DI
-    explicite). Default = DispatchMatrix.current() pour backward compat.
+    `dispatch_resolver` est injecté en option (DI explicite). Default =
+    `DispatchMatrix.current()` (singleton chargé depuis `dispatch_matrix.yaml`).
     """
 
     @abstractmethod
@@ -141,7 +140,6 @@ class LinearDecomposer(Decomposer):
         axes = self._select_axes(q.domain, self.n_subq)
         subqs = [self._build_subq(q, axis) for axis in axes]
 
-        # Audit externe 2026-05-09 : DI explicite (plus de singleton direct)
         dispatch = self._resolver.resolve(subqs)
 
         quality = score_decomposition(
@@ -160,11 +158,11 @@ class LinearDecomposer(Decomposer):
     def _select_axes(
         self, domain: Domain | None, n: int
     ) -> list[tuple[str, str]]:
-        """Sélectionne les axes canoniques du domaine (audit externe P0 fix).
+        """Sélectionne les axes canoniques pour ce domaine.
 
-        Audit externe 2026-05-09 : 4/4 voix unanimes — les 7 axes uniformes
-        SST étaient appliqués à tous les domaines. Maintenant chargés depuis
-        `axes_by_domain.yaml` versionné.
+        Les axes sont chargés depuis `axes_by_domain.yaml` versionné — chaque
+        domaine a sa liste propre (clinique, juridique_fr, technique,
+        multilingue, mixte).
         """
         axes = get_axes_for_domain(domain)
         return axes[:n]
@@ -207,7 +205,6 @@ class GraphDecomposer(Decomposer):
         domain = q.domain or Domain.MIXTE
         subject = extract_subject(q.text)
 
-        # Phase A v0.3 : axes par domaine (audit externe P0 fix).
         # Structure : 1 root (1er axe = definition/terminologie) + N branches
         # (axes 2..N-1) + 1 synthesis (convergence opérationnelle, non-canonique).
         all_axes = get_axes_for_domain(domain)
@@ -280,9 +277,8 @@ def make_decomposer(
 ) -> Decomposer:
     """Factory — point unique pour A/B test Linear vs Graph.
 
-    Audit externe 2026-05-09 :
-    - `case _: raise` ajouté pour détecter Strategy ajoutée sans décomposeur
-    - `dispatch_resolver` paramètre optionnel pour DI explicite
+    - `case _: raise` détecte toute `Strategy` ajoutée sans décomposeur correspondant.
+    - `dispatch_resolver` est un paramètre optionnel pour injection de dépendance.
     """
     match strategy:
         case Strategy.LINEAR:

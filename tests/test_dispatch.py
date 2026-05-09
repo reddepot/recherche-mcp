@@ -94,7 +94,7 @@ def test_dispatch_reload_after_yaml_modification(tmp_dispatch_yaml):
 
 @pytest.mark.integ
 def test_dispatch_real_sighup_triggers_reload(tmp_dispatch_yaml):
-    """SIGHUP réel déclenche le reload (POLYLENS CONV-3 fix).
+    """SIGHUP réel déclenche le reload de la matrice à chaud.
 
     Skip sur Windows (pas de SIGHUP) et thread non-main (signal handlers
     ne fonctionnent que sur le thread principal).
@@ -130,7 +130,7 @@ def test_dispatch_real_sighup_triggers_reload(tmp_dispatch_yaml):
 
 @pytest.mark.unit
 def test_dispatch_yaml_empty_returns_empty_dict(tmp_path):
-    """yaml.safe_load(empty file) renvoie None : doit être tolérant (POLYLENS Codex+Gemini P1)."""
+    """`yaml.safe_load(empty file)` renvoie None : doit être tolérant (`{}`)."""
     DispatchMatrix.reset()
     p = tmp_path / "empty.yaml"
     p.write_text("", encoding="utf-8")
@@ -150,7 +150,7 @@ def test_dispatch_yaml_invalid_format_raises(tmp_path):
 
 @pytest.mark.unit
 def test_dispatch_get_candidates_public_api(tmp_dispatch_yaml):
-    """API publique get_candidates() (POLYLENS Kimi P2)."""
+    """`get_candidates(domain)` retourne les candidats triés par priorité."""
     DispatchMatrix.reset()
     matrix = DispatchMatrix.current(path=tmp_dispatch_yaml)
     cands = matrix.get_candidates("clinique")

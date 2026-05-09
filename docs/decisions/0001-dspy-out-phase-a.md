@@ -2,8 +2,7 @@
 
 **Date** : 2026-05-09
 **Statut** : Accepté
-**Décideurs** : User + Claude Opus 4.7 (kickoff routine `trig_01L2DLJzpDVJo5cAmGqTEeA1`)
-**Référence** : ADR global `~/.claude/projects/-Users-radu/memory/decision_recherche_skill_devcode_20260508.md`
+**Référence** : ADR global du projet (mémoire utilisateur).
 
 ## Contexte
 
@@ -13,7 +12,7 @@ User a tranché 2026-05-09 : la décision DSPy doit être **binaire** dès Sprin
 
 ## Décision
 
-**MIPROv2 N'ENTRE PAS dans Phase A v0.1.**
+**MIPROv2 N'ENTRE PAS dans Phase A.**
 
 Trigger explicite (`DSPY_GATE`) inscrit en commentaire dans `src/recherche_mcp/decompose.py` :
 

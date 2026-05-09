@@ -8,6 +8,8 @@ import jinja2
 
 from ..models import ResearchPlan
 
+# Autoescape sélectif sur formats HTML/XML (anti-XSS pour rendus futurs).
+# Templates .j2 et .md restent non-escaped (sortie texte brut).
 ENV = jinja2.Environment(
     loader=jinja2.FileSystemLoader(str(Path(__file__).parent)),
     autoescape=jinja2.select_autoescape(
@@ -17,8 +19,6 @@ ENV = jinja2.Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
-# Audit externe 2026-05-09 Grok : autoescape activé pour formats HTML/XML
-# (anti-XSS si Phase B ajoute rendu HTML). Templates .j2 et .md restent non-escaped.
 
 
 def _extract_axis_label(text: str) -> str:

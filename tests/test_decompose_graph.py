@@ -76,7 +76,7 @@ def test_graph_rejects_out_of_range(bad):
 
 @pytest.mark.integ
 def test_graph_edges_reference_existing_subqs(question_clinique):
-    """POLYLENS Gemini P0 : edges doivent référencer des sub_questions existantes."""
+    """Edges générés doivent toujours référencer des sub_questions du plan."""
     plan = GraphDecomposer().decompose(question_clinique)
     sq_ids = {s.id for s in plan.sub_questions}
     for edge in plan.edges:

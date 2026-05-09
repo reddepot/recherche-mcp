@@ -1,8 +1,8 @@
 """6 critères qualité — métriques objectivables, sans MIPROv2.
 
-DSPY_GATE: la pondération scalaire de ces 6 critères = trigger Phase B.
-Phase A v0.3 (audit externe) : pondération par domaine via ADR-0002 +
-quality_weights.yaml (Kimi P1 fix).
+Pondération par domaine via `data/quality_weights.yaml` (cf ADR-0002).
+DSPY_GATE: la révision dynamique des poids reste un trigger d'évolution
+future (cf decompose.py header).
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ _EMBEDDING_AVAILABLE: bool | None = None  # None=untested, True=ok, False=offlin
 
 
 def _try_load_sentence_transformer():
-    """Tente de charger sentence-transformers. Return None si offline (audit Kimi P1).
+    """Tente de charger sentence-transformers. Return None si offline.
 
     Cas couverts :
     - ImportError : package non installé
@@ -42,7 +42,7 @@ def _try_load_sentence_transformer():
     except (ImportError, OSError, FileNotFoundError) as exc:
         logger.warning(
             "sentence-transformers indisponible (%s) — fallback Jaccard "
-            "tokens activé. Phase A v0.3 : graceful degradation offline.",
+            "tokens activé (graceful degradation offline).",
             type(exc).__name__,
         )
         _EMBEDDING_AVAILABLE = False
@@ -53,7 +53,7 @@ def _embed():
     """Lazy-load thread-safe du modèle d'embeddings.
 
     Premier appel : ~200MB download. Verrou pour éviter double instanciation.
-    Audit Kimi P1 : si offline/air-gapped, retourne None → fallback Jaccard.
+    Si offline/air-gapped, retourne None → fallback Jaccard.
     """
     global _MODEL
     if _MODEL is None:
@@ -74,8 +74,8 @@ def set_embed_model(model) -> None:
 def _jaccard_similarity_matrix(texts: list[str]) -> np.ndarray:
     """Fallback Jaccard sur tokens si sentence-transformers indisponible.
 
-    Audit Kimi P1 : graceful degradation offline. Métrique grossière mais
-    fonctionnelle. Permet à recherche-mcp de tourner sans network.
+    Métrique grossière mais fonctionnelle, qui permet à recherche-mcp de
+    tourner sans réseau (environnements air-gapped, CI, etc.).
     """
     token_sets = [set(t.lower().split()) for t in texts]
     n = len(texts)
@@ -132,7 +132,7 @@ def score_decomposition(
         embs = model.encode(texts, normalize_embeddings=True)
         sim = embs @ embs.T
     else:
-        # Audit Kimi P1 fix : fallback Jaccard si offline
+        # Fallback Jaccard si embeddings model indisponible (offline)
         sim = _jaccard_similarity_matrix(texts)
     np.fill_diagonal(sim, 0.0)
     max_offdiag = float(sim.max())

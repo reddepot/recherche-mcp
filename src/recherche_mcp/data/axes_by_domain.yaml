@@ -1,13 +1,14 @@
-# Axes canoniques par domaine (audit externe 2026-05-09 : 4/4 voix P0)
+# Axes canoniques par domaine.
 #
-# Phase A v0.1 utilisait 7 axes uniformes biaisés SST. Pour `domain="technique"`,
-# l'axe `praticien_cible` produisait des sous-questions absurdes.
+# Chaque domaine a sa propre liste d'axes pertinents (clinique, juridique_fr,
+# technique, multilingue, mixte). Les axes uniformes ne fonctionnent pas :
+# `praticien_cible` est pertinent en clinique mais absurde en technique.
 #
-# Cette matrice associe chaque domaine à des axes pertinents. Format :
-#   - axe_id : verbe différenciant (utilisé par decompose.py pour générer le
-#     préfixe textuel des sous-questions)
+# Format YAML : domaine → list of {axe_id: verbe différenciant}.
+# Le verbe est utilisé par `decompose.py` pour générer le texte de la
+# sous-question (préfixé par `[axe_id]`).
 #
-# Phase B : enrichissement LLM-driven possible.
+# Une évolution future LLM-driven pourra enrichir / contextualiser ces axes.
 
 clinique:
   - definition: "Définir précisément les concepts et terminologie de"

@@ -160,7 +160,7 @@ def test_research_plan_min_4_subq():
 
 @pytest.mark.unit
 def test_research_plan_dispatch_rejects_duplicate_subq_ids():
-    """POLYLENS Codex P1 : dispatch avec sub_question_id dupliqué = ValidationError."""
+    """Dispatch contenant un `sub_question_id` dupliqué doit être rejeté."""
     q = Question(text="x" * 50)
     sqs = [
         SubQuestion(
@@ -200,7 +200,7 @@ def test_research_plan_dispatch_rejects_duplicate_subq_ids():
 
 @pytest.mark.unit
 def test_research_plan_edges_must_reference_existing_subqs():
-    """POLYLENS Gemini P0 : validator edges référencent des sub_questions existantes."""
+    """Edges doivent référencer des `sub_question` existantes (intégrité référentielle)."""
     from uuid import uuid4
     q = Question(text="x" * 50)
     sqs = [

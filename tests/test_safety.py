@@ -1,4 +1,4 @@
-"""Tests filtre anti-PII (POLYLENS Kimi P1 — couverture safety.py)."""
+"""Tests filtre anti-PII pour `safety.py`."""
 
 from __future__ import annotations
 
@@ -99,15 +99,15 @@ class TestRedactCombined:
         assert not has_potential_pii(text)
 
     def test_redact_idempotent(self):
-        """redact_pii(redact_pii(x)) == redact_pii(x) (Kimi P2)."""
+        """`redact_pii(redact_pii(x)) == redact_pii(x)` — applications répétées sûres."""
         text = "Mail: test@example.com et tel 0612345678"
         once = redact_pii(text)
         twice = redact_pii(once)
         assert once == twice
 
 
-# Audit externe 2026-05-09 : extension PII médicale (RPPS, ADELI, FINESS, IPP,
-# SIRET, IBAN, noms, INIR neutre, Corse 2A/2B).
+# Tests des extensions PII médicales : RPPS, ADELI, FINESS, IPP, SIRET, IBAN,
+# noms avec titre, NIR Corse 2A/2B, NIR sexe 1-4 (anticipation INIR neutre).
 
 
 @pytest.mark.unit

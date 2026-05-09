@@ -1,20 +1,17 @@
-# Phase B kickoff — γ-α dispatch auto (35-50 j-h)
+# Phase B kickoff — γ-α dispatch auto (estim. 25-40 j-h)
 
-**Statut** : Préparée 2026-05-09. Démarrage conditionné à la collecte de logs usage Phase A v0.2 sur 7+ jours.
-**ADR référence** : `~/.claude/projects/-Users-radu/memory/decision_recherche_skill_devcode_20260508.md`
+**Statut** : Préparée. Démarrage conditionné à la collecte de logs usage Phase A sur ≥7 jours.
 
 ## Pré-requis avant démarrage
 
-1. ✅ Phase A v0.2 livrée et auditée POLYLENS (61/61 tests)
+1. ✅ Phase A livrée et auditée (audits internes + externes)
 2. ⏳ **Logs usage Phase A** : ≥10-20 invocations réelles du skill `/recherche`
-   - Source : `~/Developer/projects/recherche-mcp/runs/usage_*.jsonl`
+   - Source : log usage permanent (path XDG via `platformdirs`, override `RECHERCHE_MCP_RUNS_DIR`)
    - Synthèse : `python scripts/usage_summary.py`
-3. ⏳ NAS rebooté + push Gitea + accès stable APIs externes
-4. ⏳ Décision user "GO Phase B" explicite
+3. ⏳ Accès stable aux APIs externes ciblées
+4. ⏳ Décision « GO Phase B » explicite
 
 ## Périmètre Phase B (γ-α dispatch auto API)
-
-Selon ADR Sprint 2 + 12 items backlog POLYLENS.
 
 ### Livrables principaux
 
@@ -24,7 +21,7 @@ Selon ADR Sprint 2 + 12 items backlog POLYLENS.
    - `AnthropicWebSearchAdapter` (`web_search` tool)
    - `xAIGrokAdapter` (Grok search API)
    - `MistralLocalAdapter` (Ollama fallback CNIL/UE)
-   - Pattern Adapter convergent 3 voix challenge POLYLENS DEVCODE-Vote
+   - Pattern Adapter qui découple le code métier du SDK fournisseur
 
 2. **Policy engine côté MCP server (déplacement gating skill → serveur)**
    - Deny-by-default P0, OAuth scopes par outil
@@ -33,7 +30,7 @@ Selon ADR Sprint 2 + 12 items backlog POLYLENS.
    - Hooks PreToolUse Claude Code = défense en profondeur SEULEMENT (pas logique métier)
 
 3. **Isolation contextvars Python par requête**
-   - Mitigation corruption d'état concurrentielle FastMCP × LangGraph (POLYLENS challenge GLM)
+   - Mitigation corruption d'état concurrentielle FastMCP × orchestrateur multi-étapes
    - Propagation `correlation_id` dans chaque appel LLM/API
 
 4. **Tests de charge concurrence**
@@ -49,32 +46,25 @@ Selon ADR Sprint 2 + 12 items backlog POLYLENS.
 6. **Mode "express" bypass MAS**
    - Pour requêtes haute confiance (1 RAG + 1 modèle)
    - Bascule MAS si confidence < seuil
-   - Réduit latence P1/P2 (mitigation POLYLENS Kimi P1 12-15s)
+   - Réduit la latence sur les questions P1/P2 simples
 
 7. **Fallback local Mistral/Ollama**
    - Résilience CNIL/localisation UE
    - Test de bascule auto si APIs US indisponibles
 
-### Backlog 12 items POLYLENS à intégrer
+### Backlog résiduel à intégrer
 
-Source : `docs/polylens_audit_phaseA_20260509.md` section "Backlog Phase B/C"
+La majorité du backlog d'origine a été absorbée Phase A (façade MCP réelle, axes par domaine, anti-PII étendu, fallback offline, DI explicite, etc.). Restent à traiter :
 
 | # | Item | Sévérité | Effort |
 |---|---|---|---|
-| 1 | `make_decomposer` factory `case _: raise` | P2 | <30min |
-| 2 | `class Domain(str, Enum)` → `StrEnum` | P3 | <30min |
-| 3 | `safety.py` NIR Corse (2A/2B) | P1 | <30min |
-| 4 | `safety.py` validator Pydantic intégré | P3 | 1-2h |
-| 5 | `dispatch_matrix.yaml` user-override `~/.config/recherche-mcp/` | P2 | 1h |
-| 6 | `test_server.py` FastMCP test client | P1 | 2-3h |
-| 7 | Decomposer DI explicite (DispatchResolver param) | P1 | 2-3h |
-| 8 | `make_decomposer` registre dynamique | P2 | 1h |
-| 9 | `quality.py` graceful degradation offline (fallback Jaccard) | P2 | 1-2h |
-| 10 | `expected_subq` test paramétré sur fixtures | P2 | 1h |
-| 11 | `server.py` split `cli.py` | P2 | 30min |
-| 12 | Marker `@pytest.mark.unit/integ` audit complet | P3 | 30min |
+| 1 | `safety.py` validator Pydantic intégré (warning si PII détectée dans `Question`) | P3 | 1-2h |
+| 2 | `dispatch_matrix.yaml` user-override (`~/.config/recherche-mcp/`) | P2 | 1h |
+| 3 | `test_server.py` FastMCP test client | P1 | 2-3h |
+| 4 | `make_decomposer` registre dynamique (au lieu de match exhaustif) | P2 | 1h |
+| 5 | `server.py` split `cli.py` (entrypoint séparé du module serveur) | P2 | 30min |
 
-**Total backlog** : ~10-15h.
+**Total backlog résiduel** : ~5-7h.
 
 ### Métriques cibles Phase B
 
@@ -84,57 +74,50 @@ Source : `docs/polylens_audit_phaseA_20260509.md` section "Backlog Phase B/C"
 | Quality orthogonalité | > 0.05 | **> 0.4** (cosine max ≤ 0.6) |
 | Time-to-actionable mode express | N/A | **< 5s P2** |
 | Time-to-actionable MAS | N/A | **médian -30% vs manuel actuel sur P1** |
-| Tests | 68/68 | **+30 tests** (concurrence, adapters, gating, audit) |
+| Tests | 106/106 | **+30 tests** (concurrence, adapters, gating, audit) |
 | Couverture domaines API auto | 0 | Perplexity + OAI + Anthropic + xAI + Mistral local |
 
 ## Plan d'attaque suggéré (5 sprints)
 
-### Sprint B1 — Backlog POLYLENS quick wins (1-2 j-h)
-Items 1, 2, 8, 11, 12 (Domain StrEnum, factory défensive, registre dynamique, split cli.py, audit markers).
-Commit : `chore: phase-b backlog polylens quick wins`.
+### Sprint B1 — Backlog quick wins (1-2 j-h)
+Items 4, 5 du backlog résiduel (registre dynamique factory, split `cli.py`).
 
 ### Sprint B2 — DRFacade + adapters (8-12 j-h)
 - Interface `DRFacade` abstraite
-- 5 adapters concrets (Perplexity, OAI, Anthropic, xAI, Mistral local)
+- 5 adapters concrets (Perplexity, OpenAI, Anthropic, xAI, Mistral local)
 - Tests par adapter avec mocks API + 1 smoke test API réel optionnel
-- Item 7 : Decomposer DI accepte `DispatchResolver`
-- Items 3, 4 : safety.py NIR Corse + validator Pydantic
-Commit : `feat(adapter): DRFacade + 5 adapters par fournisseur`.
+- Item 1 : `safety.py` validator Pydantic intégré
 
 ### Sprint B3 — Policy engine + concurrence (10-15 j-h)
 - Policy engine côté MCP server (deny-by-default P0)
-- Auto-détection sujet médical → routage RedAPI
-- Redaction PHI before dispatch
-- Isolation contextvars + correlation_id propagation
-- Tests charge ≥10 req parallèles
-- Item 5 : dispatch_matrix.yaml user-override
-- Item 6 : test_server.py
-Commit : `feat(policy): server-side gating + contextvars isolation`.
+- Auto-détection sujet médical → routage gateway sécurisé
+- Redaction PHI avant dispatch
+- Isolation contextvars + propagation `correlation_id`
+- Tests charge ≥10 requêtes parallèles
+- Item 2 : `dispatch_matrix.yaml` user-override
+- Item 3 : `test_server.py`
 
 ### Sprint B4 — Audit + mode express + fallback (8-12 j-h)
 - Audit hash-chain WORM light (JSONL signé + idempotency keys)
 - Mode express : skip MAS si confidence > seuil sur RAG-only
-- Fallback Mistral local
-- Item 9 : quality.py graceful degradation offline
-- Item 10 : expected_subq test paramétré
-Commit : `feat(express): mode bypass + fallback Mistral + audit hash-chain`.
+- Fallback Mistral local opérationnel
 
 ### Sprint B5 — Validation + capitalize (3-5 j-h)
-- POLYLENS allégé Phase B (4-5 axes cette fois : sécurité, qualité, tests, archi, opposabilité)
-- Smoke test sur 5-10 cas réels avec usage logs Phase A en input
-- Capitalize → memory + ADR-0002 Phase B closure
+- Re-passe d'audit allégé (4-5 axes : sécurité, qualité, tests, archi, opposabilité)
+- Smoke test sur 5-10 cas réels avec logs usage Phase A en input
+- Capitalisation des leçons + ADR Phase B closure
 
-**Total Phase B estimé : 30-46 j-h** (vs 35-50 budget initial).
+**Total Phase B estimé : 30-46 j-h.**
 
 ## Comment décider du démarrage Phase B
 
 ### Conditions de GO
 
-1. ✅ Phase A v0.2 livrée
-2. ⏳ **≥10-20 invocations réelles** du skill par user sur 7+ jours
-3. ⏳ **Synthèse usage signal clair** : volumétrie suffisante par domaine, latence acceptable, qualité baseline confirmée OU dégradée avec patterns identifiables
-4. ⏳ **Pas de bugs P0/P1 émergents** non couverts par POLYLENS Phase A
-5. ⏳ Décision user explicite "GO Phase B"
+1. ✅ Phase A livrée
+2. ⏳ **≥10-20 invocations réelles** du skill sur ≥7 jours
+3. ⏳ **Synthèse usage avec signal clair** : volumétrie suffisante par domaine, latence acceptable, qualité baseline confirmée ou patterns d'échec identifiables
+4. ⏳ **Pas de bugs P0/P1 émergents** non couverts par les audits Phase A
+5. ⏳ Décision explicite « GO Phase B »
 
 ### Conditions de NO-GO ou pivot
 

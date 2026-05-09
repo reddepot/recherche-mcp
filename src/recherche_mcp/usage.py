@@ -1,14 +1,15 @@
 """Log usage permanent du skill /recherche — JSONL append-only.
 
-Objectif : tracer l'usage réel pour Phase A → Phase B data-driven.
-Lisible 7+ jours après pour identifier patterns, frictions, améliorations.
+Objectif : tracer l'usage réel pour ajuster le pipeline avec des données
+mesurées (volumétrie par domaine, distribution n_subq, qualité par cas,
+latence, anomalies).
 
 Format JSONL : 1 ligne = 1 invocation `decompose_question`.
-Rotation mensuelle (`usage_2026-05.jsonl`) pour éviter inflation.
+Rotation mensuelle (`usage_YYYY-MM.jsonl`) pour éviter l'inflation.
 
-Anti-PII (POLYLENS Q3) :
-- Question tronquée à 200 chars + `redact_pii()` appliqué
-- Mode `--no-log` côté CLI désactive complètement.
+Anti-PII :
+- Question tronquée à 200 chars + `redact_pii()` appliqué avant écriture
+- Mode `--no-log` côté CLI désactive complètement le journal usage.
 """
 
 from __future__ import annotations
@@ -30,20 +31,20 @@ logger = logging.getLogger("recherche_mcp.usage")
 # Path par défaut : ~/Developer/projects/recherche-mcp/runs/
 # Override via env var RECHERCHE_MCP_RUNS_DIR (utile pour tests)
 def _default_runs_dir() -> Path:
-    """Path XDG-conforme cross-platform (audit Kimi P3 + ChatGPT P3).
+    """Path XDG-conforme cross-platform.
 
     Linux : ~/.local/share/recherche-mcp/runs/
     macOS : ~/Library/Application Support/recherche-mcp/runs/
     Windows : %LOCALAPPDATA%/recherche-mcp/runs/
 
-    Fallback ~/Developer/projects/recherche-mcp/runs/ si platformdirs
-    indisponible (compat Phase A v0.2).
+    Fallback `~/Developer/projects/recherche-mcp/runs/` si `platformdirs`
+    indisponible.
     """
     try:
         import platformdirs
         return Path(platformdirs.user_data_dir("recherche-mcp", "reddepot")) / "runs"
     except ImportError:
-        # Fallback legacy macOS-centrique
+        # Fallback macOS-centrique
         return Path.home() / "Developer/projects/recherche-mcp/runs"
 
 
@@ -54,7 +55,7 @@ _DISABLED = False  # contrôlé par CLI --no-log
 
 
 def disable() -> None:
-    """Désactive le logging usage (POLYLENS Q3 mode privacy strict)."""
+    """Désactive le logging usage (mode privacy strict via CLI `--no-log`)."""
     global _DISABLED
     _DISABLED = True
 

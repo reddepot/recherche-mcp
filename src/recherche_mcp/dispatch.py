@@ -17,14 +17,13 @@ class DispatchMatrix:
     """Singleton chargeur YAML avec reload SIGHUP à chaud (pas de rebuild Docker).
 
     Thread-safety :
-    - `current()` utilise double-checked locking pour init (POLYLENS CONV-2).
-    - `reset()` acquiert le lock (POLYLENS Kimi P1).
-    - `reload()` et `resolve()` utilisent `_lock` standard.
+    - `current()` : double-checked locking pour init concurrent.
+    - `reset()` et `reload()` acquièrent le lock.
+    - RLock (reentrant) car current() acquiert le lock puis appelle __init__
+      qui appelle reload() qui acquiert le même lock — Lock standard = deadlock.
     """
 
     _instance: ClassVar["DispatchMatrix | None"] = None
-    # RLock (reentrant) car current() acquiert le lock puis appelle __init__
-    # qui appelle reload() qui acquiert le même lock — Lock standard = deadlock.
     _lock: ClassVar[threading.RLock] = threading.RLock()
 
     def __init__(self, path: Path):
@@ -76,7 +75,7 @@ class DispatchMatrix:
 
     @classmethod
     def current(cls, path: Path | None = None) -> "DispatchMatrix":
-        """Singleton thread-safe via double-checked locking (POLYLENS CONV-2)."""
+        """Singleton thread-safe via double-checked locking."""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
